@@ -26,21 +26,23 @@ import org.junit.runner.Description
 import org.junit.runners.model.Statement
 
 class MockWebServerRuleTest {
-  @Test fun statementStartsAndStops() {
-    val rule = MockWebServerRule()
-    val called = AtomicBoolean()
-    val statement: Statement = rule.apply(object : Statement() {
-      @Throws(Throwable::class) override fun evaluate() {
-        called.set(true)
-        rule.server.url("/").toUrl().openConnection().connect()
+   @Test
+   fun statementStartsAndStops() {
+      val rule = MockWebServerRule()
+      val called = AtomicBoolean()
+      val statement: Statement = rule.apply(object : Statement() {
+         @Throws(Throwable::class)
+         override fun evaluate() {
+            called.set(true)
+            rule.server.url("/").toUrl().openConnection().connect()
+         }
+      }, Description.EMPTY)
+      statement.evaluate()
+      assertThat(called.get()).isTrue
+      try {
+         rule.server.url("/").toUrl().openConnection().connect()
+         fail()
+      } catch (expected: ConnectException) {
       }
-    }, Description.EMPTY)
-    statement.evaluate()
-    assertThat(called.get()).isTrue
-    try {
-      rule.server.url("/").toUrl().openConnection().connect()
-      fail()
-    } catch (expected: ConnectException) {
-    }
-  }
+   }
 }

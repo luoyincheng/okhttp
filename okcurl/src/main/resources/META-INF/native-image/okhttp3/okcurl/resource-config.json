@@ -1,5 +1,7 @@
 {
-  "resources": [
-    {"pattern": "okcurl-version.properties"}
-  ]
+   "resources": [
+      {
+         "pattern": "okcurl-version.properties"
+      }
+   ]
 }

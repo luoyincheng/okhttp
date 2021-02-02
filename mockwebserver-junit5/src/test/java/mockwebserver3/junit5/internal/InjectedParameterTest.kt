@@ -20,13 +20,13 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 
 class InjectedParameterTest {
-  @Test
-  fun testOne(server: MockWebServer) {
-    assertThat(server.started).isTrue()
-  }
+   @Test
+   fun testOne(server: MockWebServer) {
+      assertThat(server.started).isTrue()
+   }
 
-  @Test
-  fun testTwo(server: MockWebServer) {
-    assertThat(server.started).isTrue()
-  }
+   @Test
+   fun testTwo(server: MockWebServer) {
+      assertThat(server.started).isTrue()
+   }
 }

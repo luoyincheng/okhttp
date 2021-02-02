@@ -34,72 +34,76 @@ import org.junit.jupiter.api.Test
  */
 @Tag("Slowish")
 class TaskRunnerRealBackendTest {
-  private val log = LinkedBlockingDeque<String>()
+   private val log = LinkedBlockingDeque<String>()
 
-  private val loggingUncaughtExceptionHandler = UncaughtExceptionHandler { _, throwable ->
-    log.put("uncaught exception: $throwable")
-  }
+   private val loggingUncaughtExceptionHandler = UncaughtExceptionHandler { _, throwable ->
+      log.put("uncaught exception: $throwable")
+   }
 
-  private val threadFactory = ThreadFactory { runnable ->
-    Thread(runnable, "TaskRunnerRealBackendTest").apply {
-      isDaemon = true
-      uncaughtExceptionHandler = loggingUncaughtExceptionHandler
-    }
-  }
+   private val threadFactory = ThreadFactory { runnable ->
+      Thread(runnable, "TaskRunnerRealBackendTest").apply {
+         isDaemon = true
+         uncaughtExceptionHandler = loggingUncaughtExceptionHandler
+      }
+   }
 
-  private val backend = TaskRunner.RealBackend(threadFactory)
-  private val taskRunner = TaskRunner(backend)
-  private val queue = taskRunner.newQueue()
+   private val backend = TaskRunner.RealBackend(threadFactory)
+   private val taskRunner = TaskRunner(backend)
+   private val queue = taskRunner.newQueue()
 
-  @AfterEach fun tearDown() {
-    backend.shutdown()
-  }
-
-  @Test fun test() {
-    val t1 = System.nanoTime() / 1e6
-
-    val delays = mutableListOf(TimeUnit.MILLISECONDS.toNanos(1000), -1L)
-    queue.schedule("task", TimeUnit.MILLISECONDS.toNanos(750)) {
-      log.put("runOnce delays.size=${delays.size}")
-      return@schedule delays.removeAt(0)
-    }
-
-    assertThat(log.take()).isEqualTo("runOnce delays.size=2")
-    val t2 = System.nanoTime() / 1e6 - t1
-    assertThat(t2).isCloseTo(750.0, Offset.offset(250.0))
-
-    assertThat(log.take()).isEqualTo("runOnce delays.size=1")
-    val t3 = System.nanoTime() / 1e6 - t1
-    assertThat(t3).isCloseTo(1750.0, Offset.offset(250.0))
-  }
-
-  @Test fun taskFailsWithUncheckedException() {
-    queue.schedule("task", TimeUnit.MILLISECONDS.toNanos(100)) {
-      log.put("failing task running")
-      throw RuntimeException("boom!")
-    }
-
-    queue.schedule("task", TimeUnit.MILLISECONDS.toNanos(200)) {
-      log.put("normal task running")
-      return@schedule -1L
-    }
-
-    queue.idleLatch().await(500, TimeUnit.MILLISECONDS)
-
-    assertThat(log.take()).isEqualTo("failing task running")
-    assertThat(log.take()).isEqualTo("uncaught exception: java.lang.RuntimeException: boom!")
-    assertThat(log.take()).isEqualTo("normal task running")
-    assertThat(log).isEmpty()
-  }
-
-  @Test fun idleLatchAfterShutdown() {
-    queue.schedule("task") {
-      Thread.sleep(250)
+   @AfterEach
+   fun tearDown() {
       backend.shutdown()
-      return@schedule -1L
-    }
+   }
 
-    assertThat(queue.idleLatch().await(500L, TimeUnit.MILLISECONDS)).isTrue()
-    assertThat(queue.idleLatch().count).isEqualTo(0)
-  }
+   @Test
+   fun test() {
+      val t1 = System.nanoTime() / 1e6
+
+      val delays = mutableListOf(TimeUnit.MILLISECONDS.toNanos(1000), -1L)
+      queue.schedule("task", TimeUnit.MILLISECONDS.toNanos(750)) {
+         log.put("runOnce delays.size=${delays.size}")
+         return@schedule delays.removeAt(0)
+      }
+
+      assertThat(log.take()).isEqualTo("runOnce delays.size=2")
+      val t2 = System.nanoTime() / 1e6 - t1
+      assertThat(t2).isCloseTo(750.0, Offset.offset(250.0))
+
+      assertThat(log.take()).isEqualTo("runOnce delays.size=1")
+      val t3 = System.nanoTime() / 1e6 - t1
+      assertThat(t3).isCloseTo(1750.0, Offset.offset(250.0))
+   }
+
+   @Test
+   fun taskFailsWithUncheckedException() {
+      queue.schedule("task", TimeUnit.MILLISECONDS.toNanos(100)) {
+         log.put("failing task running")
+         throw RuntimeException("boom!")
+      }
+
+      queue.schedule("task", TimeUnit.MILLISECONDS.toNanos(200)) {
+         log.put("normal task running")
+         return@schedule -1L
+      }
+
+      queue.idleLatch().await(500, TimeUnit.MILLISECONDS)
+
+      assertThat(log.take()).isEqualTo("failing task running")
+      assertThat(log.take()).isEqualTo("uncaught exception: java.lang.RuntimeException: boom!")
+      assertThat(log.take()).isEqualTo("normal task running")
+      assertThat(log).isEmpty()
+   }
+
+   @Test
+   fun idleLatchAfterShutdown() {
+      queue.schedule("task") {
+         Thread.sleep(250)
+         backend.shutdown()
+         return@schedule -1L
+      }
+
+      assertThat(queue.idleLatch().await(500L, TimeUnit.MILLISECONDS)).isTrue()
+      assertThat(queue.idleLatch().count).isEqualTo(0)
+   }
 }

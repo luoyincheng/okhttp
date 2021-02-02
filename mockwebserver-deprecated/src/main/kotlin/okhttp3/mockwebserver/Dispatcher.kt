@@ -16,12 +16,12 @@
 package okhttp3.mockwebserver
 
 abstract class Dispatcher {
-  @Throws(InterruptedException::class)
-  abstract fun dispatch(request: RecordedRequest): MockResponse
+   @Throws(InterruptedException::class)
+   abstract fun dispatch(request: RecordedRequest): MockResponse
 
-  open fun peek(): MockResponse {
-    return MockResponse().apply { this.socketPolicy = SocketPolicy.KEEP_OPEN }
-  }
+   open fun peek(): MockResponse {
+      return MockResponse().apply { this.socketPolicy = SocketPolicy.KEEP_OPEN }
+   }
 
-  open fun shutdown() {}
+   open fun shutdown() {}
 }

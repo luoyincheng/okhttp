@@ -56,229 +56,229 @@ import org.assertj.core.data.Offset
 import org.junit.jupiter.api.Assertions.assertTrue
 
 open class RecordingEventListener : EventListener() {
-  val eventSequence: Deque<CallEvent> = ConcurrentLinkedDeque()
+   val eventSequence: Deque<CallEvent> = ConcurrentLinkedDeque()
 
-  private val forbiddenLocks = mutableListOf<Any>()
+   private val forbiddenLocks = mutableListOf<Any>()
 
-  /** The timestamp of the last taken event, used to measure elapsed time between events. */
-  private var lastTimestampNs: Long? = null
+   /** The timestamp of the last taken event, used to measure elapsed time between events. */
+   private var lastTimestampNs: Long? = null
 
-  /** Confirm that the thread does not hold a lock on `lock` during the callback. */
-  fun forbidLock(lock: Any) {
-    forbiddenLocks.add(lock)
-  }
+   /** Confirm that the thread does not hold a lock on `lock` during the callback. */
+   fun forbidLock(lock: Any) {
+      forbiddenLocks.add(lock)
+   }
 
-  /**
-   * Removes recorded events up to (and including) an event is found whose class equals [eventClass]
-   * and returns it.
-   */
-  fun <T> removeUpToEvent(eventClass: Class<T>): T {
-    val fullEventSequence = eventSequence.toList()
-    try {
-      while (true) {
-        val event = takeEvent()
-        if (eventClass.isInstance(event)) {
-          return eventClass.cast(event)
-        }
+   /**
+    * Removes recorded events up to (and including) an event is found whose class equals [eventClass]
+    * and returns it.
+    */
+   fun <T> removeUpToEvent(eventClass: Class<T>): T {
+      val fullEventSequence = eventSequence.toList()
+      try {
+         while (true) {
+            val event = takeEvent()
+            if (eventClass.isInstance(event)) {
+               return eventClass.cast(event)
+            }
+         }
+      } catch (e: NoSuchElementException) {
+         throw AssertionError("full event sequence: $fullEventSequence", e)
       }
-    } catch (e: NoSuchElementException) {
-      throw AssertionError("full event sequence: $fullEventSequence", e)
-    }
-  }
+   }
 
-  /**
-   * Remove and return the next event from the recorded sequence.
-   *
-   * @param eventClass a class to assert that the returned event is an instance of, or null to
-   *     take any event class.
-   * @param elapsedMs the time in milliseconds elapsed since the immediately-preceding event, or
-   *     -1L to take any duration.
-   */
-  fun takeEvent(
-    eventClass: Class<*>? = null,
-    elapsedMs: Long = -1L
-  ): CallEvent {
-    val result = eventSequence.remove()
-    val actualElapsedNs = result.timestampNs - (lastTimestampNs ?: result.timestampNs)
-    lastTimestampNs = result.timestampNs
+   /**
+    * Remove and return the next event from the recorded sequence.
+    *
+    * @param eventClass a class to assert that the returned event is an instance of, or null to
+    *     take any event class.
+    * @param elapsedMs the time in milliseconds elapsed since the immediately-preceding event, or
+    *     -1L to take any duration.
+    */
+   fun takeEvent(
+      eventClass: Class<*>? = null,
+      elapsedMs: Long = -1L
+   ): CallEvent {
+      val result = eventSequence.remove()
+      val actualElapsedNs = result.timestampNs - (lastTimestampNs ?: result.timestampNs)
+      lastTimestampNs = result.timestampNs
 
-    if (eventClass != null) {
-      assertThat(result).isInstanceOf(eventClass)
-    }
+      if (eventClass != null) {
+         assertThat(result).isInstanceOf(eventClass)
+      }
 
-    if (elapsedMs != -1L) {
-      assertThat(
-          TimeUnit.NANOSECONDS.toMillis(actualElapsedNs)
-              .toDouble()
-      )
-          .isCloseTo(elapsedMs.toDouble(), Offset.offset(100.0))
-    }
+      if (elapsedMs != -1L) {
+         assertThat(
+            TimeUnit.NANOSECONDS.toMillis(actualElapsedNs)
+               .toDouble()
+         )
+            .isCloseTo(elapsedMs.toDouble(), Offset.offset(100.0))
+      }
 
-    return result
-  }
+      return result
+   }
 
-  fun recordedEventTypes() = eventSequence.map { it.name }
+   fun recordedEventTypes() = eventSequence.map { it.name }
 
-  fun clearAllEvents() {
-    while (eventSequence.isNotEmpty()) {
-      takeEvent()
-    }
-  }
+   fun clearAllEvents() {
+      while (eventSequence.isNotEmpty()) {
+         takeEvent()
+      }
+   }
 
-  private fun logEvent(e: CallEvent) {
-    for (lock in forbiddenLocks) {
-      assertThat(Thread.holdsLock(lock))
-          .overridingErrorMessage(lock.toString())
-          .isFalse()
-    }
+   private fun logEvent(e: CallEvent) {
+      for (lock in forbiddenLocks) {
+         assertThat(Thread.holdsLock(lock))
+            .overridingErrorMessage(lock.toString())
+            .isFalse()
+      }
 
-    val startEvent = e.closes(-1L)
-    if (startEvent != null) {
-      assertTrue(eventSequence.any { it == e.closes(it.timestampNs) })
-    }
+      val startEvent = e.closes(-1L)
+      if (startEvent != null) {
+         assertTrue(eventSequence.any { it == e.closes(it.timestampNs) })
+      }
 
-    eventSequence.offer(e)
-  }
+      eventSequence.offer(e)
+   }
 
-  override fun proxySelectStart(
-    call: Call,
-    url: HttpUrl
-  ) = logEvent(ProxySelectStart(System.nanoTime(), call, url))
+   override fun proxySelectStart(
+      call: Call,
+      url: HttpUrl
+   ) = logEvent(ProxySelectStart(System.nanoTime(), call, url))
 
-  override fun proxySelectEnd(
-    call: Call,
-    url: HttpUrl,
-    proxies: List<Proxy>
-  ) = logEvent(ProxySelectEnd(System.nanoTime(), call, url, proxies))
+   override fun proxySelectEnd(
+      call: Call,
+      url: HttpUrl,
+      proxies: List<Proxy>
+   ) = logEvent(ProxySelectEnd(System.nanoTime(), call, url, proxies))
 
-  override fun dnsStart(
-    call: Call,
-    domainName: String
-  ) = logEvent(DnsStart(System.nanoTime(), call, domainName))
+   override fun dnsStart(
+      call: Call,
+      domainName: String
+   ) = logEvent(DnsStart(System.nanoTime(), call, domainName))
 
-  override fun dnsEnd(
-    call: Call,
-    domainName: String,
-    inetAddressList: List<InetAddress>
-  ) = logEvent(DnsEnd(System.nanoTime(), call, domainName, inetAddressList))
+   override fun dnsEnd(
+      call: Call,
+      domainName: String,
+      inetAddressList: List<InetAddress>
+   ) = logEvent(DnsEnd(System.nanoTime(), call, domainName, inetAddressList))
 
-  override fun connectStart(
-    call: Call,
-    inetSocketAddress: InetSocketAddress,
-    proxy: Proxy
-  ) = logEvent(ConnectStart(System.nanoTime(), call, inetSocketAddress, proxy))
+   override fun connectStart(
+      call: Call,
+      inetSocketAddress: InetSocketAddress,
+      proxy: Proxy
+   ) = logEvent(ConnectStart(System.nanoTime(), call, inetSocketAddress, proxy))
 
-  override fun secureConnectStart(
-    call: Call
-  ) = logEvent(SecureConnectStart(System.nanoTime(), call))
+   override fun secureConnectStart(
+      call: Call
+   ) = logEvent(SecureConnectStart(System.nanoTime(), call))
 
-  override fun secureConnectEnd(
-    call: Call,
-    handshake: Handshake?
-  ) = logEvent(SecureConnectEnd(System.nanoTime(), call, handshake))
+   override fun secureConnectEnd(
+      call: Call,
+      handshake: Handshake?
+   ) = logEvent(SecureConnectEnd(System.nanoTime(), call, handshake))
 
-  override fun connectEnd(
-    call: Call,
-    inetSocketAddress: InetSocketAddress,
-    proxy: Proxy,
-    protocol: Protocol?
-  ) = logEvent(ConnectEnd(System.nanoTime(), call, inetSocketAddress, proxy, protocol))
+   override fun connectEnd(
+      call: Call,
+      inetSocketAddress: InetSocketAddress,
+      proxy: Proxy,
+      protocol: Protocol?
+   ) = logEvent(ConnectEnd(System.nanoTime(), call, inetSocketAddress, proxy, protocol))
 
-  override fun connectFailed(
-    call: Call,
-    inetSocketAddress: InetSocketAddress,
-    proxy: Proxy,
-    protocol: Protocol?,
-    ioe: IOException
-  ) = logEvent(ConnectFailed(System.nanoTime(), call, inetSocketAddress, proxy, protocol, ioe))
+   override fun connectFailed(
+      call: Call,
+      inetSocketAddress: InetSocketAddress,
+      proxy: Proxy,
+      protocol: Protocol?,
+      ioe: IOException
+   ) = logEvent(ConnectFailed(System.nanoTime(), call, inetSocketAddress, proxy, protocol, ioe))
 
-  override fun connectionAcquired(
-    call: Call,
-    connection: Connection
-  ) = logEvent(ConnectionAcquired(System.nanoTime(), call, connection))
+   override fun connectionAcquired(
+      call: Call,
+      connection: Connection
+   ) = logEvent(ConnectionAcquired(System.nanoTime(), call, connection))
 
-  override fun connectionReleased(
-    call: Call,
-    connection: Connection
-  ) = logEvent(ConnectionReleased(System.nanoTime(), call, connection))
+   override fun connectionReleased(
+      call: Call,
+      connection: Connection
+   ) = logEvent(ConnectionReleased(System.nanoTime(), call, connection))
 
-  override fun callStart(
-    call: Call
-  ) = logEvent(CallStart(System.nanoTime(), call))
+   override fun callStart(
+      call: Call
+   ) = logEvent(CallStart(System.nanoTime(), call))
 
-  override fun requestHeadersStart(
-    call: Call
-  ) = logEvent(RequestHeadersStart(System.nanoTime(), call))
+   override fun requestHeadersStart(
+      call: Call
+   ) = logEvent(RequestHeadersStart(System.nanoTime(), call))
 
-  override fun requestHeadersEnd(
-    call: Call,
-    request: Request
-  ) = logEvent(RequestHeadersEnd(System.nanoTime(), call, request.headers.byteCount()))
+   override fun requestHeadersEnd(
+      call: Call,
+      request: Request
+   ) = logEvent(RequestHeadersEnd(System.nanoTime(), call, request.headers.byteCount()))
 
-  override fun requestBodyStart(
-    call: Call
-  ) = logEvent(RequestBodyStart(System.nanoTime(), call))
+   override fun requestBodyStart(
+      call: Call
+   ) = logEvent(RequestBodyStart(System.nanoTime(), call))
 
-  override fun requestBodyEnd(
-    call: Call,
-    byteCount: Long
-  ) = logEvent(RequestBodyEnd(System.nanoTime(), call, byteCount))
+   override fun requestBodyEnd(
+      call: Call,
+      byteCount: Long
+   ) = logEvent(RequestBodyEnd(System.nanoTime(), call, byteCount))
 
-  override fun requestFailed(
-    call: Call,
-    ioe: IOException
-  ) = logEvent(RequestFailed(System.nanoTime(), call, ioe))
+   override fun requestFailed(
+      call: Call,
+      ioe: IOException
+   ) = logEvent(RequestFailed(System.nanoTime(), call, ioe))
 
-  override fun responseHeadersStart(
-    call: Call
-  ) = logEvent(ResponseHeadersStart(System.nanoTime(), call))
+   override fun responseHeadersStart(
+      call: Call
+   ) = logEvent(ResponseHeadersStart(System.nanoTime(), call))
 
-  override fun responseHeadersEnd(
-    call: Call,
-    response: Response
-  ) = logEvent(ResponseHeadersEnd(System.nanoTime(), call, response.headers.byteCount()))
+   override fun responseHeadersEnd(
+      call: Call,
+      response: Response
+   ) = logEvent(ResponseHeadersEnd(System.nanoTime(), call, response.headers.byteCount()))
 
-  override fun responseBodyStart(
-    call: Call
-  ) = logEvent(ResponseBodyStart(System.nanoTime(), call))
+   override fun responseBodyStart(
+      call: Call
+   ) = logEvent(ResponseBodyStart(System.nanoTime(), call))
 
-  override fun responseBodyEnd(
-    call: Call,
-    byteCount: Long
-  ) = logEvent(ResponseBodyEnd(System.nanoTime(), call, byteCount))
+   override fun responseBodyEnd(
+      call: Call,
+      byteCount: Long
+   ) = logEvent(ResponseBodyEnd(System.nanoTime(), call, byteCount))
 
-  override fun responseFailed(
-    call: Call,
-    ioe: IOException
-  ) = logEvent(ResponseFailed(System.nanoTime(), call, ioe))
+   override fun responseFailed(
+      call: Call,
+      ioe: IOException
+   ) = logEvent(ResponseFailed(System.nanoTime(), call, ioe))
 
-  override fun callEnd(
-    call: Call
-  ) = logEvent(CallEnd(System.nanoTime(), call))
+   override fun callEnd(
+      call: Call
+   ) = logEvent(CallEnd(System.nanoTime(), call))
 
-  override fun callFailed(
-    call: Call,
-    ioe: IOException
-  ) = logEvent(CallFailed(System.nanoTime(), call, ioe))
+   override fun callFailed(
+      call: Call,
+      ioe: IOException
+   ) = logEvent(CallFailed(System.nanoTime(), call, ioe))
 
-  override fun canceled(
-    call: Call
-  ) = logEvent(Canceled(System.nanoTime(), call))
+   override fun canceled(
+      call: Call
+   ) = logEvent(Canceled(System.nanoTime(), call))
 
-  override fun satisfactionFailure(
-    call: Call,
-    response: Response
-  ) = logEvent(SatisfactionFailure(System.nanoTime(), call))
+   override fun satisfactionFailure(
+      call: Call,
+      response: Response
+   ) = logEvent(SatisfactionFailure(System.nanoTime(), call))
 
-  override fun cacheMiss(
-    call: Call
-  ) = logEvent(CacheMiss(System.nanoTime(), call))
+   override fun cacheMiss(
+      call: Call
+   ) = logEvent(CacheMiss(System.nanoTime(), call))
 
-  override fun cacheHit(
-    call: Call,
-    response: Response
-  ) = logEvent(CacheHit(System.nanoTime(), call))
+   override fun cacheHit(
+      call: Call,
+      response: Response
+   ) = logEvent(CacheHit(System.nanoTime(), call))
 
-  override fun cacheConditionalHit(call: Call, cachedResponse: Response) =
-    logEvent(CacheConditionalHit(System.nanoTime(), call))
+   override fun cacheConditionalHit(call: Call, cachedResponse: Response) =
+      logEvent(CacheConditionalHit(System.nanoTime(), call))
 }

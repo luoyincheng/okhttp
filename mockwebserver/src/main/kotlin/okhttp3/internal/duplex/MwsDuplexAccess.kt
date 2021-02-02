@@ -24,9 +24,10 @@ import mockwebserver3.internal.duplex.DuplexResponseBody
  */
 abstract class MwsDuplexAccess {
 
-  abstract fun setBody(mockResponse: MockResponse, duplexResponseBody: DuplexResponseBody)
+   abstract fun setBody(mockResponse: MockResponse, duplexResponseBody: DuplexResponseBody)
 
-  companion object {
-    @JvmField var instance: MwsDuplexAccess? = null
-  }
+   companion object {
+      @JvmField
+      var instance: MwsDuplexAccess? = null
+   }
 }

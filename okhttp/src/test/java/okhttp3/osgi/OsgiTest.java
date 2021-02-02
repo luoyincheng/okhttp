@@ -15,13 +15,10 @@
  */
 package okhttp3.osgi;
 
-import aQute.bnd.build.Project;
-import aQute.bnd.build.Workspace;
-import aQute.bnd.build.model.BndEditModel;
-import aQute.bnd.deployer.repository.LocalIndexedRepo;
-import aQute.bnd.osgi.Constants;
-import aQute.bnd.service.RepositoryPlugin;
-import biz.aQute.resolve.Bndrun;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -29,133 +26,142 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import aQute.bnd.build.Project;
+import aQute.bnd.build.Workspace;
+import aQute.bnd.build.model.BndEditModel;
+import aQute.bnd.deployer.repository.LocalIndexedRepo;
+import aQute.bnd.osgi.Constants;
+import aQute.bnd.service.RepositoryPlugin;
+import biz.aQute.resolve.Bndrun;
 import okio.BufferedSource;
 import okio.Okio;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
 
 @Tag("Slow")
 public final class OsgiTest {
-  /** Each is the Bundle-SymbolicName of an OkHttp module's OSGi configuration. */
-  private static final List<String> REQUIRED_BUNDLES = Arrays.asList(
-      "com.squareup.okhttp3",
-      "com.squareup.okhttp3.brotli",
-      "com.squareup.okhttp3.dnsoverhttps",
-      "com.squareup.okhttp3.logging",
-      "com.squareup.okhttp3.sse",
-      "com.squareup.okhttp3.tls",
-      "com.squareup.okhttp3.urlconnection"
-  );
+	/**
+	 * Each is the Bundle-SymbolicName of an OkHttp module's OSGi configuration.
+	 */
+	private static final List<String> REQUIRED_BUNDLES = Arrays.asList(
+		"com.squareup.okhttp3",
+		"com.squareup.okhttp3.brotli",
+		"com.squareup.okhttp3.dnsoverhttps",
+		"com.squareup.okhttp3.logging",
+		"com.squareup.okhttp3.sse",
+		"com.squareup.okhttp3.tls",
+		"com.squareup.okhttp3.urlconnection"
+	);
 
-  /** Equinox must also be on the testing classpath. */
-  private static final String RESOLVE_OSGI_FRAMEWORK = "org.eclipse.osgi";
-  private static final String RESOLVE_JAVA_VERSION = "JavaSE-1.8";
-  private static final String REPO_NAME = "OsgiTest";
+	/**
+	 * Equinox must also be on the testing classpath.
+	 */
+	private static final String RESOLVE_OSGI_FRAMEWORK = "org.eclipse.osgi";
+	private static final String RESOLVE_JAVA_VERSION = "JavaSE-1.8";
+	private static final String REPO_NAME = "OsgiTest";
 
-  private File testResourceDir;
-  private File workspaceDir;
+	private File testResourceDir;
+	private File workspaceDir;
 
-  @BeforeEach
-  public void setUp() throws Exception {
-    testResourceDir = new File("./build/resources/test/okhttp3/osgi");
-    workspaceDir = new File(testResourceDir, "workspace");
+	private static void deleteDirectory(File dir) throws IOException {
+		if (!dir.exists()) return;
 
-    // Ensure we start from scratch.
-    deleteDirectory(workspaceDir);
-    workspaceDir.mkdirs();
-  }
+		Files.walk(dir.toPath())
+			.filter(Files::isRegularFile)
+			.map(Path::toFile)
+			.forEach(File::delete);
+	}
 
-  /**
-   * Resolve the OSGi metadata of the all okhttp3 modules. If required modules do not have OSGi
-   * metadata this will fail with an exception.
-   */
-  @Test
-  public void testMainModuleWithSiblings() throws Exception {
-    try (Workspace workspace = createWorkspace();
-         Bndrun bndRun = createBndRun(workspace)) {
-      bndRun.resolve(false, false);
-    }
-  }
+	@BeforeEach
+	public void setUp() throws Exception {
+		testResourceDir = new File("./build/resources/test/okhttp3/osgi");
+		workspaceDir = new File(testResourceDir, "workspace");
 
-  private Workspace createWorkspace() throws Exception {
-    File bndDir = new File(workspaceDir, "cnf");
-    File repoDir = new File(bndDir, "repo");
-    repoDir.mkdirs();
+		// Ensure we start from scratch.
+		deleteDirectory(workspaceDir);
+		workspaceDir.mkdirs();
+	}
 
-    Workspace workspace = new Workspace(workspaceDir, bndDir.getName());
-    workspace.setProperty(Constants.PLUGIN + "." + REPO_NAME, ""
-        + LocalIndexedRepo.class.getName()
-        + "; " + LocalIndexedRepo.PROP_NAME + " = '" + REPO_NAME + "'"
-        + "; " + LocalIndexedRepo.PROP_LOCAL_DIR + " = '" + repoDir + "'");
-    workspace.refresh();
-    prepareWorkspace(workspace);
-    return workspace;
-  }
+	/**
+	 * Resolve the OSGi metadata of the all okhttp3 modules. If required modules do not have OSGi
+	 * metadata this will fail with an exception.
+	 */
+	@Test
+	public void testMainModuleWithSiblings() throws Exception {
+		try (Workspace workspace = createWorkspace();
+		     Bndrun bndRun = createBndRun(workspace)) {
+			bndRun.resolve(false, false);
+		}
+	}
 
-  private void prepareWorkspace(Workspace workspace) throws Exception {
-    RepositoryPlugin repositoryPlugin = workspace.getRepository(REPO_NAME);
+	private Workspace createWorkspace() throws Exception {
+		File bndDir = new File(workspaceDir, "cnf");
+		File repoDir = new File(bndDir, "repo");
+		repoDir.mkdirs();
 
-    // Deploy the bundles in the deployments test directory.
-    deployDirectory(repositoryPlugin, new File(testResourceDir, "deployments"));
-    deployClassPath(repositoryPlugin);
-  }
+		Workspace workspace = new Workspace(workspaceDir, bndDir.getName());
+		workspace.setProperty(Constants.PLUGIN + "." + REPO_NAME, ""
+			+ LocalIndexedRepo.class.getName()
+			+ "; " + LocalIndexedRepo.PROP_NAME + " = '" + REPO_NAME + "'"
+			+ "; " + LocalIndexedRepo.PROP_LOCAL_DIR + " = '" + repoDir + "'");
+		workspace.refresh();
+		prepareWorkspace(workspace);
+		return workspace;
+	}
 
-  private Bndrun createBndRun(Workspace workspace) throws Exception {
-    // Creating the run require string. It will always use the latest version of each bundle
-    // available in the repository.
-    String runRequireString = REQUIRED_BUNDLES.stream()
-        .map(s -> "osgi.identity;filter:='(osgi.identity=" + s + ")'")
-        .collect(Collectors.joining(","));
+	private void prepareWorkspace(Workspace workspace) throws Exception {
+		RepositoryPlugin repositoryPlugin = workspace.getRepository(REPO_NAME);
 
-    BndEditModel bndEditModel = new BndEditModel(workspace);
-    // Temporary project to satisfy bnd API.
-    bndEditModel.setProject(new Project(workspace, workspaceDir));
+		// Deploy the bundles in the deployments test directory.
+		deployDirectory(repositoryPlugin, new File(testResourceDir, "deployments"));
+		deployClassPath(repositoryPlugin);
+	}
 
-    Bndrun result = new Bndrun(bndEditModel);
-    result.setRunfw(RESOLVE_OSGI_FRAMEWORK);
-    result.setRunee(RESOLVE_JAVA_VERSION);
-    result.setRunRequires(runRequireString);
-    return result;
-  }
+	private Bndrun createBndRun(Workspace workspace) throws Exception {
+		// Creating the run require string. It will always use the latest version of each bundle
+		// available in the repository.
+		String runRequireString = REQUIRED_BUNDLES.stream()
+			.map(s -> "osgi.identity;filter:='(osgi.identity=" + s + ")'")
+			.collect(Collectors.joining(","));
 
-  private void deployDirectory(RepositoryPlugin repository, File directory) throws Exception {
-    File[] files = directory.listFiles();
-    if (files == null) return;
+		BndEditModel bndEditModel = new BndEditModel(workspace);
+		// Temporary project to satisfy bnd API.
+		bndEditModel.setProject(new Project(workspace, workspaceDir));
 
-    for (File file : files) {
-      deployFile(repository, file);
-    }
-  }
+		Bndrun result = new Bndrun(bndEditModel);
+		result.setRunfw(RESOLVE_OSGI_FRAMEWORK);
+		result.setRunee(RESOLVE_JAVA_VERSION);
+		result.setRunRequires(runRequireString);
+		return result;
+	}
 
-  private void deployClassPath(RepositoryPlugin repositoryPlugin) throws Exception {
-    String classpath = System.getProperty("java.class.path");
-    for (String classPathEntry : classpath.split(File.pathSeparator)) {
-      deployFile(repositoryPlugin, new File(classPathEntry));
-    }
-  }
+	private void deployDirectory(RepositoryPlugin repository, File directory) throws Exception {
+		File[] files = directory.listFiles();
+		if (files == null) return;
 
-  private void deployFile(RepositoryPlugin repositoryPlugin, File file) throws Exception {
-    if (!file.exists() || file.isDirectory()) return;
+		for (File file : files) {
+			deployFile(repository, file);
+		}
+	}
 
-    try (BufferedSource source = Okio.buffer(Okio.source(file))) {
-      repositoryPlugin.put(source.inputStream(), new RepositoryPlugin.PutOptions());
-      System.out.println("Deployed " + file.getName());
-    } catch (IllegalArgumentException e) {
-      if (e.getMessage().contains("Jar does not have a symbolic name")) {
-        System.out.println("Skipped non-OSGi dependency: " + file.getName());
-        return;
-      }
-      throw e;
-    }
-  }
+	private void deployClassPath(RepositoryPlugin repositoryPlugin) throws Exception {
+		String classpath = System.getProperty("java.class.path");
+		for (String classPathEntry : classpath.split(File.pathSeparator)) {
+			deployFile(repositoryPlugin, new File(classPathEntry));
+		}
+	}
 
-  private static void deleteDirectory(File dir) throws IOException {
-    if (!dir.exists()) return;
+	private void deployFile(RepositoryPlugin repositoryPlugin, File file) throws Exception {
+		if (!file.exists() || file.isDirectory()) return;
 
-    Files.walk(dir.toPath())
-        .filter(Files::isRegularFile)
-        .map(Path::toFile)
-        .forEach(File::delete);
-  }
+		try (BufferedSource source = Okio.buffer(Okio.source(file))) {
+			repositoryPlugin.put(source.inputStream(), new RepositoryPlugin.PutOptions());
+			System.out.println("Deployed " + file.getName());
+		} catch (IllegalArgumentException e) {
+			if (e.getMessage().contains("Jar does not have a symbolic name")) {
+				System.out.println("Skipped non-OSGi dependency: " + file.getName());
+				return;
+			}
+			throw e;
+		}
+	}
 }

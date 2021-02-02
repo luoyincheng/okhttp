@@ -42,33 +42,33 @@ import org.junit.Test
  * to observing Firefox or Chrome browser behaviour.
  */
 class ApacheHttpClientHttp2Test {
-  @Test
-  fun testHttp2() {
-    val client = HttpAsyncClients.createHttp2Default()
+   @Test
+   fun testHttp2() {
+      val client = HttpAsyncClients.createHttp2Default()
 
-    client.use { client ->
-      client.start()
-      val request = SimpleHttpRequests.get("https://google.com/robots.txt")
-      val response = client.execute(request, LoggingCallback).get()
+      client.use { client ->
+         client.start()
+         val request = SimpleHttpRequests.get("https://google.com/robots.txt")
+         val response = client.execute(request, LoggingCallback).get()
 
-      println("Protocol ${response.version}")
-      println("Response ${response.code}")
-      println("${response.body.bodyText.substring(0, 20)}...")
+         println("Protocol ${response.version}")
+         println("Response ${response.code}")
+         println("${response.body.bodyText.substring(0, 20)}...")
 
-      Assert.assertEquals(ProtocolVersion("HTTP", 2, 0), response.version)
-    }
-  }
+         Assert.assertEquals(ProtocolVersion("HTTP", 2, 0), response.version)
+      }
+   }
 }
 
 object LoggingCallback : FutureCallback<SimpleHttpResponse> {
-  override fun completed(response: SimpleHttpResponse) {
-  }
+   override fun completed(response: SimpleHttpResponse) {
+   }
 
-  override fun failed(ex: Exception) {
-    println("Failed: $ex")
-  }
+   override fun failed(ex: Exception) {
+      println("Failed: $ex")
+   }
 
-  override fun cancelled() {
-    println("Cancelled")
-  }
+   override fun cancelled() {
+      println("Cancelled")
+   }
 }

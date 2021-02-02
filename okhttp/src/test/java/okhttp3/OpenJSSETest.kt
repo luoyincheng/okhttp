@@ -35,80 +35,85 @@ import okhttp3.internal.exchange
 import okhttp3.internal.connection
 
 class OpenJSSETest(
-  val server: MockWebServer
+   val server: MockWebServer
 ) {
-  @JvmField @RegisterExtension var platform = PlatformRule()
-  @JvmField @RegisterExtension val clientTestRule = OkHttpClientTestRule()
+   @JvmField
+   @RegisterExtension
+   var platform = PlatformRule()
 
-  var client = clientTestRule.newClient()
+   @JvmField
+   @RegisterExtension
+   val clientTestRule = OkHttpClientTestRule()
 
-  @BeforeEach
-  fun setUp() {
-    platform.assumeOpenJSSE()
-  }
+   var client = clientTestRule.newClient()
 
-  @Test
-  fun testTlsv13Works() {
-    enableTls()
+   @BeforeEach
+   fun setUp() {
+      platform.assumeOpenJSSE()
+   }
 
-    server.enqueue(MockResponse().setBody("abc"))
+   @Test
+   fun testTlsv13Works() {
+      enableTls()
 
-    val request = Request.Builder().url(server.url("/")).build()
+      server.enqueue(MockResponse().setBody("abc"))
 
-    val response = client.newCall(request).execute()
+      val request = Request.Builder().url(server.url("/")).build()
 
-    response.use {
-      assertEquals(200, response.code)
-      assertEquals(TlsVersion.TLS_1_3, response.handshake?.tlsVersion)
-      assertEquals(Protocol.HTTP_2, response.protocol)
+      val response = client.newCall(request).execute()
 
-      assertThat(response.exchange?.connection?.socket()).isInstanceOf(SSLSocketImpl::class.java)
-    }
-  }
+      response.use {
+         assertEquals(200, response.code)
+         assertEquals(TlsVersion.TLS_1_3, response.handshake?.tlsVersion)
+         assertEquals(Protocol.HTTP_2, response.protocol)
 
-  @Test
-  fun testSupportedProtocols() {
-    val factory = SSLSocketFactoryImpl()
-    val s = factory.createSocket() as SSLSocketImpl
+         assertThat(response.exchange?.connection?.socket()).isInstanceOf(SSLSocketImpl::class.java)
+      }
+   }
 
-    assertEquals(listOf("TLSv1.3", "TLSv1.2", "TLSv1.1", "TLSv1"), s.enabledProtocols.toList())
-  }
+   @Test
+   fun testSupportedProtocols() {
+      val factory = SSLSocketFactoryImpl()
+      val s = factory.createSocket() as SSLSocketImpl
 
-  @Test
-  @Disabled
-  fun testMozilla() {
-    assumeNetwork()
+      assertEquals(listOf("TLSv1.3", "TLSv1.2", "TLSv1.1", "TLSv1"), s.enabledProtocols.toList())
+   }
 
-    val request = Request.Builder().url("https://mozilla.org/robots.txt").build()
+   @Test
+   @Disabled
+   fun testMozilla() {
+      assumeNetwork()
 
-    client.newCall(request).execute().use {
-      assertThat(it.protocol).isEqualTo(Protocol.HTTP_2)
-      assertThat(it.handshake!!.tlsVersion).isEqualTo(TlsVersion.TLS_1_3)
-    }
-  }
+      val request = Request.Builder().url("https://mozilla.org/robots.txt").build()
 
-  @Test
-  fun testBuildIfSupported() {
-    val actual = OpenJSSEPlatform.buildIfSupported()
-    assertThat(actual).isNotNull
-  }
+      client.newCall(request).execute().use {
+         assertThat(it.protocol).isEqualTo(Protocol.HTTP_2)
+         assertThat(it.handshake!!.tlsVersion).isEqualTo(TlsVersion.TLS_1_3)
+      }
+   }
 
-  private fun enableTls() {
-    // Generate a self-signed cert for the server to serve and the client to trust.
-    // can't use TlsUtil.localhost with a non OpenJSSE trust manager
-    val heldCertificate = HeldCertificate.Builder()
-        .commonName("localhost")
-        .addSubjectAlternativeName(InetAddress.getByName("localhost").canonicalHostName)
-        .build()
-    val handshakeCertificates = HandshakeCertificates.Builder()
-        .heldCertificate(heldCertificate)
-        .addTrustedCertificate(heldCertificate.certificate)
-        .build()
+   @Test
+   fun testBuildIfSupported() {
+      val actual = OpenJSSEPlatform.buildIfSupported()
+      assertThat(actual).isNotNull
+   }
 
-    client = client.newBuilder()
-        .sslSocketFactory(
+   private fun enableTls() {
+      // Generate a self-signed cert for the server to serve and the client to trust.
+      // can't use TlsUtil.localhost with a non OpenJSSE trust manager
+      val heldCertificate = HeldCertificate.Builder()
+         .commonName("localhost")
+         .addSubjectAlternativeName(InetAddress.getByName("localhost").canonicalHostName)
+         .build()
+      val handshakeCertificates = HandshakeCertificates.Builder()
+         .heldCertificate(heldCertificate)
+         .addTrustedCertificate(heldCertificate.certificate)
+         .build()
+
+      client = client.newBuilder()
+         .sslSocketFactory(
             handshakeCertificates.sslSocketFactory(), handshakeCertificates.trustManager)
-        .build()
-    server.useHttps(handshakeCertificates.sslSocketFactory(), false)
-  }
+         .build()
+      server.useHttps(handshakeCertificates.sslSocketFactory(), false)
+   }
 }

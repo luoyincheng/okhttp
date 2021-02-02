@@ -22,53 +22,53 @@ import org.junit.platform.launcher.TestPlan
 import java.io.OutputStream
 import java.io.PrintStream
 
-object DotListener: TestExecutionListener {
-  private var originalSystemErr: PrintStream? = null
-  private var originalSystemOut: PrintStream? = null
-  private var testCount = 0
+object DotListener : TestExecutionListener {
+   private var originalSystemErr: PrintStream? = null
+   private var originalSystemOut: PrintStream? = null
+   private var testCount = 0
 
-  override fun executionSkipped(testIdentifier: TestIdentifier, reason: String) {
-    printStatus("-")
-  }
+   override fun executionSkipped(testIdentifier: TestIdentifier, reason: String) {
+      printStatus("-")
+   }
 
-  private fun printStatus(s: String) {
-    if (++testCount % 80 == 0) {
-      printStatus("\n")
-    }
-    originalSystemErr?.print(s)
-  }
-
-  override fun executionFinished(
-    testIdentifier: TestIdentifier,
-    testExecutionResult: TestExecutionResult
-  ) {
-    if (!testIdentifier.isContainer) {
-      when (testExecutionResult.status!!) {
-        TestExecutionResult.Status.ABORTED -> printStatus("-")
-        TestExecutionResult.Status.FAILED -> printStatus("F")
-        TestExecutionResult.Status.SUCCESSFUL -> printStatus(".")
+   private fun printStatus(s: String) {
+      if (++testCount % 80 == 0) {
+         printStatus("\n")
       }
-    }
-  }
+      originalSystemErr?.print(s)
+   }
 
-  override fun testPlanExecutionFinished(testPlan: TestPlan) {
-    originalSystemErr?.println()
-  }
+   override fun executionFinished(
+      testIdentifier: TestIdentifier,
+      testExecutionResult: TestExecutionResult
+   ) {
+      if (!testIdentifier.isContainer) {
+         when (testExecutionResult.status!!) {
+            TestExecutionResult.Status.ABORTED -> printStatus("-")
+            TestExecutionResult.Status.FAILED -> printStatus("F")
+            TestExecutionResult.Status.SUCCESSFUL -> printStatus(".")
+         }
+      }
+   }
 
-  fun install() {
-    originalSystemOut = System.out
-    originalSystemErr = System.err
+   override fun testPlanExecutionFinished(testPlan: TestPlan) {
+      originalSystemErr?.println()
+   }
 
-    System.setOut(object: PrintStream(OutputStream.nullOutputStream()) {})
-    System.setErr(object: PrintStream(OutputStream.nullOutputStream()) {})
-  }
+   fun install() {
+      originalSystemOut = System.out
+      originalSystemErr = System.err
 
-  fun uninstall() {
-    originalSystemOut.let {
-      System.setOut(it)
-    }
-    originalSystemErr.let {
-      System.setErr(it)
-    }
-  }
+      System.setOut(object : PrintStream(OutputStream.nullOutputStream()) {})
+      System.setErr(object : PrintStream(OutputStream.nullOutputStream()) {})
+   }
+
+   fun uninstall() {
+      originalSystemOut.let {
+         System.setOut(it)
+      }
+      originalSystemErr.let {
+         System.setErr(it)
+      }
+   }
 }

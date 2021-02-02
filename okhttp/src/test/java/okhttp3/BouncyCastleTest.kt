@@ -24,27 +24,32 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.RegisterExtension
 
 class BouncyCastleTest(
-  val server: MockWebServer
+   val server: MockWebServer
 ) {
-  @JvmField @RegisterExtension var platform = PlatformRule()
-  @JvmField @RegisterExtension val clientTestRule = OkHttpClientTestRule()
-  var client = clientTestRule.newClient()
+   @JvmField
+   @RegisterExtension
+   var platform = PlatformRule()
 
-  @BeforeEach
-  fun setUp() {
-    OkHttpDebugLogging.enable("org.bouncycastle.jsse")
-    platform.assumeBouncyCastle()
-  }
+   @JvmField
+   @RegisterExtension
+   val clientTestRule = OkHttpClientTestRule()
+   var client = clientTestRule.newClient()
 
-  @Test
-  fun testMozilla() {
-    assumeNetwork()
+   @BeforeEach
+   fun setUp() {
+      OkHttpDebugLogging.enable("org.bouncycastle.jsse")
+      platform.assumeBouncyCastle()
+   }
 
-    val request = Request.Builder().url("https://mozilla.org/robots.txt").build()
+   @Test
+   fun testMozilla() {
+      assumeNetwork()
 
-    client.newCall(request).execute().use {
-      assertThat(it.protocol).isEqualTo(Protocol.HTTP_2)
-      assertThat(it.handshake!!.tlsVersion).isEqualTo(TlsVersion.TLS_1_2)
-    }
-  }
+      val request = Request.Builder().url("https://mozilla.org/robots.txt").build()
+
+      client.newCall(request).execute().use {
+         assertThat(it.protocol).isEqualTo(Protocol.HTTP_2)
+         assertThat(it.handshake!!.tlsVersion).isEqualTo(TlsVersion.TLS_1_2)
+      }
+   }
 }

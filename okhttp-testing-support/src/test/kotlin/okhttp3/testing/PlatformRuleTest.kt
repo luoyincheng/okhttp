@@ -23,27 +23,29 @@ import org.junit.jupiter.api.extension.RegisterExtension
  * Sanity test for checking which environment and IDE is picking up.
  */
 class PlatformRuleTest {
-  @RegisterExtension @JvmField val platform = PlatformRule()
+   @RegisterExtension
+   @JvmField
+   val platform = PlatformRule()
 
-  @Test
-  fun testMode() {
-    println(PlatformRule.getPlatformSystemProperty())
-    println(Platform.get().javaClass.simpleName)
-  }
+   @Test
+   fun testMode() {
+      println(PlatformRule.getPlatformSystemProperty())
+      println(Platform.get().javaClass.simpleName)
+   }
 
-  @Test
-  fun testGreenCase() {
-  }
+   @Test
+   fun testGreenCase() {
+   }
 
-  @Test
-  fun testGreenCaseFailingOnLater() {
-    platform.expectFailureFromJdkVersion(PlatformVersion.majorVersion + 1)
-  }
+   @Test
+   fun testGreenCaseFailingOnLater() {
+      platform.expectFailureFromJdkVersion(PlatformVersion.majorVersion + 1)
+   }
 
-  @Test
-  fun failureCase() {
-    platform.expectFailureFromJdkVersion(PlatformVersion.majorVersion)
+   @Test
+   fun failureCase() {
+      platform.expectFailureFromJdkVersion(PlatformVersion.majorVersion)
 
-    check(false)
-  }
+      check(false)
+   }
 }

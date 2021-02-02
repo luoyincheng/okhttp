@@ -21,17 +21,17 @@ import java.io.File
 
 // TODO move to junit5 tags
 val avoidedTests = setOf(
-  "okhttp3.BouncyCastleTest",
-  "okhttp3.ConscryptTest",
-  "okhttp3.CorrettoTest",
-  "okhttp3.OpenJSSETest",
-  "okhttp3.internal.platform.Jdk8WithJettyBootPlatformTest",
-  "okhttp3.internal.platform.Jdk9PlatformTest",
-  "okhttp3.internal.platform.PlatformTest",
-  "okhttp3.internal.platform.android.AndroidSocketAdapterTest",
-  "okhttp3.osgi.OsgiTest",
-  "okhttp3.CookiesTest", // hanging
-  "okhttp3.WholeOperationTimeoutTest", // hanging
+   "okhttp3.BouncyCastleTest",
+   "okhttp3.ConscryptTest",
+   "okhttp3.CorrettoTest",
+   "okhttp3.OpenJSSETest",
+   "okhttp3.internal.platform.Jdk8WithJettyBootPlatformTest",
+   "okhttp3.internal.platform.Jdk9PlatformTest",
+   "okhttp3.internal.platform.PlatformTest",
+   "okhttp3.internal.platform.android.AndroidSocketAdapterTest",
+   "okhttp3.osgi.OsgiTest",
+   "okhttp3.CookiesTest", // hanging
+   "okhttp3.WholeOperationTimeoutTest", // hanging
 )
 
 /**
@@ -40,13 +40,13 @@ val avoidedTests = setOf(
  * TODO use filtering to allow skipping acceptable problem tests
  */
 fun main() {
-  val knownTestFile = File("native-image-tests/src/main/resources/testlist.txt")
-  val testSelector = DiscoverySelectors.selectPackage("okhttp3")
-  val testClasses = findTests(listOf(testSelector))
-    .filter { it.isContainer }
-    .mapNotNull { (it as? ClassBasedTestDescriptor)?.testClass?.name }
-    .filterNot { it in avoidedTests }
-    .sorted()
-    .distinct()
-  knownTestFile.writeText(testClasses.joinToString("\n"))
+   val knownTestFile = File("native-image-tests/src/main/resources/testlist.txt")
+   val testSelector = DiscoverySelectors.selectPackage("okhttp3")
+   val testClasses = findTests(listOf(testSelector))
+      .filter { it.isContainer }
+      .mapNotNull { (it as? ClassBasedTestDescriptor)?.testClass?.name }
+      .filterNot { it in avoidedTests }
+      .sorted()
+      .distinct()
+   knownTestFile.writeText(testClasses.joinToString("\n"))
 }

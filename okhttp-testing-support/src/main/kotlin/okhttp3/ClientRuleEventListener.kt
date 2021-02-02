@@ -22,258 +22,258 @@ import java.net.Proxy
 import java.util.concurrent.TimeUnit
 
 class ClientRuleEventListener(
-  val delegate: EventListener = NONE,
-  var logger: (String) -> Unit
+   val delegate: EventListener = NONE,
+   var logger: (String) -> Unit
 ) : EventListener(),
-    EventListener.Factory {
-  private var startNs: Long? = null
+   EventListener.Factory {
+   private var startNs: Long? = null
 
-  override fun create(call: Call): EventListener = this
+   override fun create(call: Call): EventListener = this
 
-  override fun callStart(call: Call) {
-    startNs = System.nanoTime()
+   override fun callStart(call: Call) {
+      startNs = System.nanoTime()
 
-    logWithTime("callStart: ${call.request()}")
+      logWithTime("callStart: ${call.request()}")
 
-    delegate.callStart(call)
-  }
+      delegate.callStart(call)
+   }
 
-  override fun proxySelectStart(
-    call: Call,
-    url: HttpUrl
-  ) {
-    logWithTime("proxySelectStart: $url")
+   override fun proxySelectStart(
+      call: Call,
+      url: HttpUrl
+   ) {
+      logWithTime("proxySelectStart: $url")
 
-    delegate.proxySelectStart(call, url)
-  }
+      delegate.proxySelectStart(call, url)
+   }
 
-  override fun proxySelectEnd(
-    call: Call,
-    url: HttpUrl,
-    proxies: List<Proxy>
-  ) {
-    logWithTime("proxySelectEnd: $proxies")
+   override fun proxySelectEnd(
+      call: Call,
+      url: HttpUrl,
+      proxies: List<Proxy>
+   ) {
+      logWithTime("proxySelectEnd: $proxies")
 
-    delegate.proxySelectEnd(call, url, proxies)
-  }
+      delegate.proxySelectEnd(call, url, proxies)
+   }
 
-  override fun dnsStart(
-    call: Call,
-    domainName: String
-  ) {
-    logWithTime("dnsStart: $domainName")
+   override fun dnsStart(
+      call: Call,
+      domainName: String
+   ) {
+      logWithTime("dnsStart: $domainName")
 
-    delegate.dnsStart(call, domainName)
-  }
+      delegate.dnsStart(call, domainName)
+   }
 
-  override fun dnsEnd(
-    call: Call,
-    domainName: String,
-    inetAddressList: List<InetAddress>
-  ) {
-    logWithTime("dnsEnd: $inetAddressList")
+   override fun dnsEnd(
+      call: Call,
+      domainName: String,
+      inetAddressList: List<InetAddress>
+   ) {
+      logWithTime("dnsEnd: $inetAddressList")
 
-    delegate.dnsEnd(call, domainName, inetAddressList)
-  }
+      delegate.dnsEnd(call, domainName, inetAddressList)
+   }
 
-  override fun connectStart(
-    call: Call,
-    inetSocketAddress: InetSocketAddress,
-    proxy: Proxy
-  ) {
-    logWithTime("connectStart: $inetSocketAddress $proxy")
+   override fun connectStart(
+      call: Call,
+      inetSocketAddress: InetSocketAddress,
+      proxy: Proxy
+   ) {
+      logWithTime("connectStart: $inetSocketAddress $proxy")
 
-    delegate.connectStart(call, inetSocketAddress, proxy)
-  }
+      delegate.connectStart(call, inetSocketAddress, proxy)
+   }
 
-  override fun secureConnectStart(call: Call) {
-    logWithTime("secureConnectStart")
+   override fun secureConnectStart(call: Call) {
+      logWithTime("secureConnectStart")
 
-    delegate.secureConnectStart(call)
-  }
+      delegate.secureConnectStart(call)
+   }
 
-  override fun secureConnectEnd(
-    call: Call,
-    handshake: Handshake?
-  ) {
-    logWithTime("secureConnectEnd: $handshake")
+   override fun secureConnectEnd(
+      call: Call,
+      handshake: Handshake?
+   ) {
+      logWithTime("secureConnectEnd: $handshake")
 
-    delegate.secureConnectEnd(call, handshake)
-  }
+      delegate.secureConnectEnd(call, handshake)
+   }
 
-  override fun connectEnd(
-    call: Call,
-    inetSocketAddress: InetSocketAddress,
-    proxy: Proxy,
-    protocol: Protocol?
-  ) {
-    logWithTime("connectEnd: $protocol")
+   override fun connectEnd(
+      call: Call,
+      inetSocketAddress: InetSocketAddress,
+      proxy: Proxy,
+      protocol: Protocol?
+   ) {
+      logWithTime("connectEnd: $protocol")
 
-    delegate.connectEnd(call, inetSocketAddress, proxy, protocol)
-  }
+      delegate.connectEnd(call, inetSocketAddress, proxy, protocol)
+   }
 
-  override fun connectFailed(
-    call: Call,
-    inetSocketAddress: InetSocketAddress,
-    proxy: Proxy,
-    protocol: Protocol?,
-    ioe: IOException
-  ) {
-    logWithTime("connectFailed: $protocol $ioe")
+   override fun connectFailed(
+      call: Call,
+      inetSocketAddress: InetSocketAddress,
+      proxy: Proxy,
+      protocol: Protocol?,
+      ioe: IOException
+   ) {
+      logWithTime("connectFailed: $protocol $ioe")
 
-    delegate.connectFailed(call, inetSocketAddress, proxy, protocol, ioe)
-  }
+      delegate.connectFailed(call, inetSocketAddress, proxy, protocol, ioe)
+   }
 
-  override fun connectionAcquired(
-    call: Call,
-    connection: Connection
-  ) {
-    logWithTime("connectionAcquired: $connection")
+   override fun connectionAcquired(
+      call: Call,
+      connection: Connection
+   ) {
+      logWithTime("connectionAcquired: $connection")
 
-    delegate.connectionAcquired(call, connection)
-  }
+      delegate.connectionAcquired(call, connection)
+   }
 
-  override fun connectionReleased(
-    call: Call,
-    connection: Connection
-  ) {
-    logWithTime("connectionReleased")
+   override fun connectionReleased(
+      call: Call,
+      connection: Connection
+   ) {
+      logWithTime("connectionReleased")
 
-    delegate.connectionReleased(call, connection)
-  }
+      delegate.connectionReleased(call, connection)
+   }
 
-  override fun requestHeadersStart(call: Call) {
-    logWithTime("requestHeadersStart")
+   override fun requestHeadersStart(call: Call) {
+      logWithTime("requestHeadersStart")
 
-    delegate.requestHeadersStart(call)
-  }
+      delegate.requestHeadersStart(call)
+   }
 
-  override fun requestHeadersEnd(
-    call: Call,
-    request: Request
-  ) {
-    logWithTime("requestHeadersEnd")
+   override fun requestHeadersEnd(
+      call: Call,
+      request: Request
+   ) {
+      logWithTime("requestHeadersEnd")
 
-    delegate.requestHeadersEnd(call, request)
-  }
+      delegate.requestHeadersEnd(call, request)
+   }
 
-  override fun requestBodyStart(call: Call) {
-    logWithTime("requestBodyStart")
+   override fun requestBodyStart(call: Call) {
+      logWithTime("requestBodyStart")
 
-    delegate.requestBodyStart(call)
-  }
+      delegate.requestBodyStart(call)
+   }
 
-  override fun requestBodyEnd(
-    call: Call,
-    byteCount: Long
-  ) {
-    logWithTime("requestBodyEnd: byteCount=$byteCount")
+   override fun requestBodyEnd(
+      call: Call,
+      byteCount: Long
+   ) {
+      logWithTime("requestBodyEnd: byteCount=$byteCount")
 
-    delegate.requestBodyEnd(call, byteCount)
-  }
+      delegate.requestBodyEnd(call, byteCount)
+   }
 
-  override fun requestFailed(
-    call: Call,
-    ioe: IOException
-  ) {
-    logWithTime("requestFailed: $ioe")
+   override fun requestFailed(
+      call: Call,
+      ioe: IOException
+   ) {
+      logWithTime("requestFailed: $ioe")
 
-    delegate.requestFailed(call, ioe)
-  }
+      delegate.requestFailed(call, ioe)
+   }
 
-  override fun responseHeadersStart(call: Call) {
-    logWithTime("responseHeadersStart")
+   override fun responseHeadersStart(call: Call) {
+      logWithTime("responseHeadersStart")
 
-    delegate.responseHeadersStart(call)
-  }
+      delegate.responseHeadersStart(call)
+   }
 
-  override fun responseHeadersEnd(
-    call: Call,
-    response: Response
-  ) {
-    logWithTime("responseHeadersEnd: $response")
+   override fun responseHeadersEnd(
+      call: Call,
+      response: Response
+   ) {
+      logWithTime("responseHeadersEnd: $response")
 
-    delegate.responseHeadersEnd(call, response)
-  }
+      delegate.responseHeadersEnd(call, response)
+   }
 
-  override fun responseBodyStart(call: Call) {
-    logWithTime("responseBodyStart")
+   override fun responseBodyStart(call: Call) {
+      logWithTime("responseBodyStart")
 
-    delegate.responseBodyStart(call)
-  }
+      delegate.responseBodyStart(call)
+   }
 
-  override fun responseBodyEnd(
-    call: Call,
-    byteCount: Long
-  ) {
-    logWithTime("responseBodyEnd: byteCount=$byteCount")
+   override fun responseBodyEnd(
+      call: Call,
+      byteCount: Long
+   ) {
+      logWithTime("responseBodyEnd: byteCount=$byteCount")
 
-    delegate.responseBodyEnd(call, byteCount)
-  }
+      delegate.responseBodyEnd(call, byteCount)
+   }
 
-  override fun responseFailed(
-    call: Call,
-    ioe: IOException
-  ) {
-    logWithTime("responseFailed: $ioe")
+   override fun responseFailed(
+      call: Call,
+      ioe: IOException
+   ) {
+      logWithTime("responseFailed: $ioe")
 
-    delegate.responseFailed(call, ioe)
-  }
+      delegate.responseFailed(call, ioe)
+   }
 
-  override fun callEnd(call: Call) {
-    logWithTime("callEnd")
+   override fun callEnd(call: Call) {
+      logWithTime("callEnd")
 
-    delegate.callEnd(call)
-  }
+      delegate.callEnd(call)
+   }
 
-  override fun callFailed(
-    call: Call,
-    ioe: IOException
-  ) {
-    logWithTime("callFailed: $ioe")
+   override fun callFailed(
+      call: Call,
+      ioe: IOException
+   ) {
+      logWithTime("callFailed: $ioe")
 
-    delegate.callFailed(call, ioe)
-  }
+      delegate.callFailed(call, ioe)
+   }
 
-  override fun canceled(call: Call) {
-    logWithTime("canceled")
+   override fun canceled(call: Call) {
+      logWithTime("canceled")
 
-    delegate.canceled(call)
-  }
+      delegate.canceled(call)
+   }
 
-  override fun satisfactionFailure(call: Call, response: Response) {
-    logWithTime("satisfactionFailure")
+   override fun satisfactionFailure(call: Call, response: Response) {
+      logWithTime("satisfactionFailure")
 
-    delegate.satisfactionFailure(call, response)
-  }
+      delegate.satisfactionFailure(call, response)
+   }
 
-  override fun cacheMiss(call: Call) {
-    logWithTime("cacheMiss")
+   override fun cacheMiss(call: Call) {
+      logWithTime("cacheMiss")
 
-    delegate.cacheMiss(call)
-  }
+      delegate.cacheMiss(call)
+   }
 
-  override fun cacheHit(call: Call, response: Response) {
-    logWithTime("cacheHit")
+   override fun cacheHit(call: Call, response: Response) {
+      logWithTime("cacheHit")
 
-    delegate.cacheHit(call, response)
-  }
+      delegate.cacheHit(call, response)
+   }
 
-  override fun cacheConditionalHit(call: Call, cachedResponse: Response) {
-    logWithTime("cacheConditionalHit")
+   override fun cacheConditionalHit(call: Call, cachedResponse: Response) {
+      logWithTime("cacheConditionalHit")
 
-    delegate.cacheConditionalHit(call, cachedResponse)
-  }
+      delegate.cacheConditionalHit(call, cachedResponse)
+   }
 
-  private fun logWithTime(message: String) {
-    val startNs = startNs
-    val timeMs = if (startNs == null) {
-      // Event occurred before start, for an example an early cancel.
-      0L
-    } else {
-      TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNs)
-    }
+   private fun logWithTime(message: String) {
+      val startNs = startNs
+      val timeMs = if (startNs == null) {
+         // Event occurred before start, for an example an early cancel.
+         0L
+      } else {
+         TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNs)
+      }
 
-    logger.invoke("[$timeMs ms] $message")
-  }
+      logger.invoke("[$timeMs ms] $message")
+   }
 }

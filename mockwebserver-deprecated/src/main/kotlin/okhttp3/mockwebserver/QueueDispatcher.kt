@@ -18,30 +18,30 @@ package okhttp3.mockwebserver
 import mockwebserver3.QueueDispatcher
 
 class QueueDispatcher : Dispatcher() {
-  internal val delegate = QueueDispatcher()
+   internal val delegate = QueueDispatcher()
 
-  @Throws(InterruptedException::class)
-  override fun dispatch(request: RecordedRequest): MockResponse {
-    throw UnsupportedOperationException("unexpected call")
-  }
+   @Throws(InterruptedException::class)
+   override fun dispatch(request: RecordedRequest): MockResponse {
+      throw UnsupportedOperationException("unexpected call")
+   }
 
-  override fun peek(): MockResponse {
-    throw UnsupportedOperationException("unexpected call")
-  }
+   override fun peek(): MockResponse {
+      throw UnsupportedOperationException("unexpected call")
+   }
 
-  fun enqueueResponse(response: MockResponse) {
-    delegate.enqueueResponse(response.wrap())
-  }
+   fun enqueueResponse(response: MockResponse) {
+      delegate.enqueueResponse(response.wrap())
+   }
 
-  override fun shutdown() {
-    delegate.shutdown()
-  }
+   override fun shutdown() {
+      delegate.shutdown()
+   }
 
-  fun setFailFast(failFast: Boolean) {
-    delegate.setFailFast(failFast)
-  }
+   fun setFailFast(failFast: Boolean) {
+      delegate.setFailFast(failFast)
+   }
 
-  fun setFailFast(failFastResponse: MockResponse?) {
-    delegate.setFailFast(failFastResponse?.wrap())
-  }
+   fun setFailFast(failFastResponse: MockResponse?) {
+      delegate.setFailFast(failFastResponse?.wrap())
+   }
 }

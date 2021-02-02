@@ -23,28 +23,28 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.asRequestBody
 
 class PostFile {
-  private val client = OkHttpClient()
+   private val client = OkHttpClient()
 
-  fun run() {
-    val file = File("README.md")
+   fun run() {
+      val file = File("README.md")
 
-    val request = Request.Builder()
-        .url("https://api.github.com/markdown/raw")
-        .post(file.asRequestBody(MEDIA_TYPE_MARKDOWN))
-        .build()
+      val request = Request.Builder()
+         .url("https://api.github.com/markdown/raw")
+         .post(file.asRequestBody(MEDIA_TYPE_MARKDOWN))
+         .build()
 
-    client.newCall(request).execute().use { response ->
-      if (!response.isSuccessful) throw IOException("Unexpected code $response")
+      client.newCall(request).execute().use { response ->
+         if (!response.isSuccessful) throw IOException("Unexpected code $response")
 
-      println(response.body!!.string())
-    }
-  }
+         println(response.body!!.string())
+      }
+   }
 
-  companion object {
-    val MEDIA_TYPE_MARKDOWN = "text/x-markdown; charset=utf-8".toMediaType()
-  }
+   companion object {
+      val MEDIA_TYPE_MARKDOWN = "text/x-markdown; charset=utf-8".toMediaType()
+   }
 }
 
 fun main() {
-  PostFile().run()
+   PostFile().run()
 }

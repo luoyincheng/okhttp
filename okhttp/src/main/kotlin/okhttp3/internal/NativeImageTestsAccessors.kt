@@ -25,19 +25,19 @@ import okhttp3.internal.io.FileSystem
 import java.io.File
 
 fun buildCache(file: File, maxSize: Long, fileSystem: FileSystem): Cache {
-  return Cache(file, maxSize, fileSystem)
+   return Cache(file, maxSize, fileSystem)
 }
 
 var RealConnection.idleAtNsAccessor
-  get() = idleAtNs
-  set(value) {
-    idleAtNs = value
-  }
+   get() = idleAtNs
+   set(value) {
+      idleAtNs = value
+   }
 
 val Response.exchange
-  get() = this.exchange
+   get() = this.exchange
 
 val Exchange.connection
-  get() = this.connection
+   get() = this.connection
 
 fun Dispatcher.finished(call: RealCall.AsyncCall) = this.finished(call)

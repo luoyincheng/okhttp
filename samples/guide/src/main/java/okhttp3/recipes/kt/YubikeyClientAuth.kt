@@ -48,71 +48,71 @@ import okhttp3.internal.platform.Platform
  */
 @SuppressSignatureCheck
 class YubikeyClientAuth() {
-  fun run() {
-    // The typical PKCS11 slot, may vary with different hardware.
-    val slot = 0
+   fun run() {
+      // The typical PKCS11 slot, may vary with different hardware.
+      val slot = 0
 
-    val config = "--name=OpenSC\nlibrary=/Library/OpenSC/lib/opensc-pkcs11.so\nslot=$slot\n"
+      val config = "--name=OpenSC\nlibrary=/Library/OpenSC/lib/opensc-pkcs11.so\nslot=$slot\n"
 
-    // May fail with ProviderException with root cause like
-    // sun.security.pkcs11.wrapper.PKCS11Exception: CKR_SLOT_ID_INVALID
-    val pkcs11 = Security.getProvider("SunPKCS11").configure(config)
-    Security.addProvider(pkcs11)
+      // May fail with ProviderException with root cause like
+      // sun.security.pkcs11.wrapper.PKCS11Exception: CKR_SLOT_ID_INVALID
+      val pkcs11 = Security.getProvider("SunPKCS11").configure(config)
+      Security.addProvider(pkcs11)
 
-    val callbackHandler = ConsoleCallbackHandler
+      val callbackHandler = ConsoleCallbackHandler
 
-    val builderList: List<KeyStore.Builder> = Arrays.asList(
-        KeyStore.Builder.newInstance("PKCS11", null, KeyStore.CallbackHandlerProtection(callbackHandler))
+      val builderList: List<KeyStore.Builder> = Arrays.asList(
+         KeyStore.Builder.newInstance("PKCS11", null, KeyStore.CallbackHandlerProtection(callbackHandler))
 
-        // Example if you want to combine multiple keystore types
-        // KeyStore.Builder.newInstance("PKCS12", null, File("keystore.p12"), PasswordProtection("rosebud".toCharArray()))
-    )
+         // Example if you want to combine multiple keystore types
+         // KeyStore.Builder.newInstance("PKCS12", null, File("keystore.p12"), PasswordProtection("rosebud".toCharArray()))
+      )
 
-    val keyManagerFactory = KeyManagerFactory.getInstance("NewSunX509")
-    keyManagerFactory.init(KeyStoreBuilderParameters(builderList))
-    val keyManager = keyManagerFactory.keyManagers[0] as X509ExtendedKeyManager
+      val keyManagerFactory = KeyManagerFactory.getInstance("NewSunX509")
+      keyManagerFactory.init(KeyStoreBuilderParameters(builderList))
+      val keyManager = keyManagerFactory.keyManagers[0] as X509ExtendedKeyManager
 
-    val trustManager = Platform.get().platformTrustManager()
+      val trustManager = Platform.get().platformTrustManager()
 
-    val sslContext = SSLContext.getInstance("TLS")
-    sslContext.init(arrayOf(keyManager), arrayOf(trustManager), SecureRandom())
+      val sslContext = SSLContext.getInstance("TLS")
+      sslContext.init(arrayOf(keyManager), arrayOf(trustManager), SecureRandom())
 
-    val client = OkHttpClient.Builder()
-        .sslSocketFactory(sslContext.socketFactory, trustManager)
-        .build()
+      val client = OkHttpClient.Builder()
+         .sslSocketFactory(sslContext.socketFactory, trustManager)
+         .build()
 
-    // An example test URL that returns client certificate details.
-    val request = Request.Builder()
-        .url("https://prod.idrix.eu/secure/")
-        .build()
+      // An example test URL that returns client certificate details.
+      val request = Request.Builder()
+         .url("https://prod.idrix.eu/secure/")
+         .build()
 
-    client.newCall(request).execute().use { response ->
-      if (!response.isSuccessful) throw IOException("Unexpected code $response")
+      client.newCall(request).execute().use { response ->
+         if (!response.isSuccessful) throw IOException("Unexpected code $response")
 
-      println(response.body!!.string())
-    }
-  }
+         println(response.body!!.string())
+      }
+   }
 }
 
 object ConsoleCallbackHandler : CallbackHandler {
-  override fun handle(callbacks: Array<Callback>) {
-    for (callback in callbacks) {
-      if (callback is PasswordCallback) {
-        val console = System.console()
+   override fun handle(callbacks: Array<Callback>) {
+      for (callback in callbacks) {
+         if (callback is PasswordCallback) {
+            val console = System.console()
 
-        if (console != null) {
-          callback.password = console.readPassword(callback.prompt)
-        } else {
-          System.err.println(callback.prompt)
-          callback.password = System.`in`.bufferedReader().readLine().toCharArray()
-        }
-      } else {
-        throw UnsupportedCallbackException(callback)
+            if (console != null) {
+               callback.password = console.readPassword(callback.prompt)
+            } else {
+               System.err.println(callback.prompt)
+               callback.password = System.`in`.bufferedReader().readLine().toCharArray()
+            }
+         } else {
+            throw UnsupportedCallbackException(callback)
+         }
       }
-    }
-  }
+   }
 }
 
 fun main() {
-  YubikeyClientAuth().run()
+   YubikeyClientAuth().run()
 }

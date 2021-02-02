@@ -2,10 +2,10 @@ apply plugin: 'me.champeau.gradle.japicmp'
 applyOsgi(this)
 
 jar {
-  // MANIFEST.MF, including OSGi bnd instructions.
-  // We export okhttp3.internal for our own modules use.
-  // The packages of all optional dependencies must be explicitly specified.
-  bnd '''
+   // MANIFEST.MF, including OSGi bnd instructions.
+   // We export okhttp3.internal for our own modules use.
+   // The packages of all optional dependencies must be explicitly specified.
+   bnd '''
   Export-Package: \
   okhttp3,\
   okhttp3.internal.*;okhttpinternal=true;mandatory:=okhttpinternal
@@ -24,92 +24,92 @@ jar {
 }
 
 sourceSets {
-  main.java.srcDirs += "$buildDir/generated/sources/java-templates/java/main"
+   main.java.srcDirs += "$buildDir/generated/sources/java-templates/java/main"
 }
 
 compileKotlin {
-  dependsOn 'copyJavaTemplates'
+   dependsOn 'copyJavaTemplates'
 }
 
 task copyJavaTemplates(type: Copy) {
-  from 'src/main/java-templates'
-  into "$buildDir/generated/sources/java-templates/java/main"
-  expand('projectVersion': "${project.version}")
-  filteringCharset = 'UTF-8'
+   from 'src/main/java-templates'
+   into "$buildDir/generated/sources/java-templates/java/main"
+   expand('projectVersion': "${project.version}")
+   filteringCharset = 'UTF-8'
 }
 
 // Expose OSGi jars to the test environment.
 configurations {
-  osgiTestDeploy
+   osgiTestDeploy
 }
 task copyOsgiTestDeployment(type: Copy) {
-  from configurations.osgiTestDeploy
-  into "${buildDir}/resources/test/okhttp3/osgi/deployments"
+   from configurations.osgiTestDeploy
+   into "${buildDir}/resources/test/okhttp3/osgi/deployments"
 }
 tasks.test.dependsOn(copyOsgiTestDeployment)
 
 dependencies {
-  api deps.okio
-  api deps.kotlinStdlib
+   api deps.okio
+   api deps.kotlinStdlib
 
-  // These compileOnly dependencies must also be listed in the OSGi configuration above.
-  compileOnly deps.android
-  compileOnly deps.bouncycastle
-  compileOnly deps.bouncycastletls
-  compileOnly deps.conscrypt
-  compileOnly deps.openjsse
-  compileOnly deps.jsr305
-  compileOnly deps.animalSniffer
+   // These compileOnly dependencies must also be listed in the OSGi configuration above.
+   compileOnly deps.android
+   compileOnly deps.bouncycastle
+   compileOnly deps.bouncycastletls
+   compileOnly deps.conscrypt
+   compileOnly deps.openjsse
+   compileOnly deps.jsr305
+   compileOnly deps.animalSniffer
 
-  // graal build support
-  compileOnly("org.graalvm.nativeimage:svm:20.2.0") {
-    // Avoid kapt tripping up on a non jar dependency.
-    // Only annotations are needed here.
-    // https://youtrack.jetbrains.com/issue/KT-29513
-    exclude group: 'org.graalvm.nativeimage'
-    exclude group: 'org.graalvm.truffle'
-    exclude group: 'org.graalvm.compiler'
-  }
+   // graal build support
+   compileOnly("org.graalvm.nativeimage:svm:20.2.0") {
+      // Avoid kapt tripping up on a non jar dependency.
+      // Only annotations are needed here.
+      // https://youtrack.jetbrains.com/issue/KT-29513
+      exclude group: 'org.graalvm.nativeimage'
+      exclude group: 'org.graalvm.truffle'
+      exclude group: 'org.graalvm.compiler'
+   }
 
-  testImplementation project(':okhttp-testing-support')
-  testImplementation project(':okhttp-tls')
-  testImplementation project(':okhttp-urlconnection')
-  testImplementation project(':mockwebserver')
-  testImplementation project(':mockwebserver-junit4')
-  testImplementation project(':mockwebserver-junit5')
-  testImplementation project(':mockwebserver-deprecated')
-  testImplementation project(':okhttp-logging-interceptor')
-  testImplementation project(':okhttp-brotli')
-  testImplementation project(':okhttp-dnsoverhttps')
-  testImplementation project(':okhttp-sse')
-  testImplementation deps.conscrypt
-  testImplementation deps.junit
-  testImplementation deps.junit5Api
-  testImplementation deps.junit5JupiterParams
-  testImplementation deps.assertj
-  testImplementation deps.openjsse
-  testImplementation deps.bndResolve
-  osgiTestDeploy deps.equinox
-  osgiTestDeploy deps.kotlinStdlibOsgi
-  testCompileOnly deps.jsr305
+   testImplementation project(':okhttp-testing-support')
+   testImplementation project(':okhttp-tls')
+   testImplementation project(':okhttp-urlconnection')
+   testImplementation project(':mockwebserver')
+   testImplementation project(':mockwebserver-junit4')
+   testImplementation project(':mockwebserver-junit5')
+   testImplementation project(':mockwebserver-deprecated')
+   testImplementation project(':okhttp-logging-interceptor')
+   testImplementation project(':okhttp-brotli')
+   testImplementation project(':okhttp-dnsoverhttps')
+   testImplementation project(':okhttp-sse')
+   testImplementation deps.conscrypt
+   testImplementation deps.junit
+   testImplementation deps.junit5Api
+   testImplementation deps.junit5JupiterParams
+   testImplementation deps.assertj
+   testImplementation deps.openjsse
+   testImplementation deps.bndResolve
+   osgiTestDeploy deps.equinox
+   osgiTestDeploy deps.kotlinStdlibOsgi
+   testCompileOnly deps.jsr305
 }
 
 afterEvaluate { project ->
-  project.tasks.dokka {
-    outputDirectory = "$rootDir/docs/4.x"
-    outputFormat = 'gfm'
-  }
+   project.tasks.dokka {
+      outputDirectory = "$rootDir/docs/4.x"
+      outputFormat = 'gfm'
+   }
 }
 
 task japicmp(type: me.champeau.gradle.japicmp.JapicmpTask, dependsOn: 'jar') {
-  oldClasspath = files(baselineJar(project, baselineVersion))
-  newClasspath = files(jar.archivePath)
-  onlyBinaryIncompatibleModified = true
-  failOnModification = true
-  txtOutputFile = file("$buildDir/reports/japi.txt")
-  ignoreMissingClasses = true
-  includeSynthetic = true
-  packageExcludes = [
+   oldClasspath = files(baselineJar(project, baselineVersion))
+   newClasspath = files(jar.archivePath)
+   onlyBinaryIncompatibleModified = true
+   failOnModification = true
+   txtOutputFile = file("$buildDir/reports/japi.txt")
+   ignoreMissingClasses = true
+   includeSynthetic = true
+   packageExcludes = [
       'okhttp3.internal',
       'okhttp3.internal.annotations',
       'okhttp3.internal.cache',
@@ -124,13 +124,13 @@ task japicmp(type: me.champeau.gradle.japicmp.JapicmpTask, dependsOn: 'jar') {
       'okhttp3.internal.publicsuffix',
       'okhttp3.internal.tls',
       'okhttp3.internal.ws',
-  ]
-  classExcludes = [
+   ]
+   classExcludes = [
       // Package-private in 3.x, internal in 4.0.0:
       'okhttp3.Cache$CacheResponseBody$1',
       'okhttp3.RealCall$AsyncCall',
-  ]
-  methodExcludes = [
+   ]
+   methodExcludes = [
       // Became 'final' despite a non-final enclosing class in 4.0.0:
       'okhttp3.OkHttpClient#authenticator()',
       'okhttp3.OkHttpClient#cache()',
@@ -160,6 +160,6 @@ task japicmp(type: me.champeau.gradle.japicmp.JapicmpTask, dependsOn: 'jar') {
       'okhttp3.OkHttpClient#writeTimeoutMillis()',
       'okhttp3.OkHttpClient#writeTimeoutMillis()',
       'okhttp3.Request$Builder#delete()',
-  ]
+   ]
 }
 check.dependsOn(japicmp)

@@ -22,10 +22,10 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 
 class PostString {
-  private val client = OkHttpClient()
+   private val client = OkHttpClient()
 
-  fun run() {
-    val postBody = """
+   fun run() {
+      val postBody = """
         |Releases
         |--------
         |
@@ -34,23 +34,23 @@ class PostString {
         | * _1.2_ August 11, 2013
         |""".trimMargin()
 
-    val request = Request.Builder()
-        .url("https://api.github.com/markdown/raw")
-        .post(postBody.toRequestBody(MEDIA_TYPE_MARKDOWN))
-        .build()
+      val request = Request.Builder()
+         .url("https://api.github.com/markdown/raw")
+         .post(postBody.toRequestBody(MEDIA_TYPE_MARKDOWN))
+         .build()
 
-    client.newCall(request).execute().use { response ->
-      if (!response.isSuccessful) throw IOException("Unexpected code $response")
+      client.newCall(request).execute().use { response ->
+         if (!response.isSuccessful) throw IOException("Unexpected code $response")
 
-      println(response.body!!.string())
-    }
-  }
+         println(response.body!!.string())
+      }
+   }
 
-  companion object {
-    val MEDIA_TYPE_MARKDOWN = "text/x-markdown; charset=utf-8".toMediaType()
-  }
+   companion object {
+      val MEDIA_TYPE_MARKDOWN = "text/x-markdown; charset=utf-8".toMediaType()
+   }
 }
 
 fun main() {
-  PostString().run()
+   PostString().run()
 }

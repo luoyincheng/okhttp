@@ -1,8 +1,8 @@
 dependencies {
-  implementation project(':okhttp')
-  implementation deps.jsoup
+   implementation project(':okhttp')
+   implementation deps.jsoup
 }
 
 tasks.withType(JavaCompile) {
-  options.warnings = false
+   options.warnings = false
 }

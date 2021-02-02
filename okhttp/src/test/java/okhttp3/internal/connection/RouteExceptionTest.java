@@ -15,39 +15,43 @@
  */
 package okhttp3.internal.connection;
 
-import java.io.IOException;
-import kotlin.Unit;
 import org.junit.jupiter.api.Test;
+
+import java.io.IOException;
+
+import kotlin.Unit;
 
 import static okhttp3.TestUtil.assertSuppressed;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class RouteExceptionTest {
 
-  @Test public void getConnectionIOException_single() {
-    IOException firstException = new IOException();
-    RouteException re = new RouteException(firstException);
-    assertThat(re.getFirstConnectException()).isSameAs(firstException);
-    assertThat(re.getLastConnectException()).isSameAs(firstException);
-  }
+	@Test
+	public void getConnectionIOException_single() {
+		IOException firstException = new IOException();
+		RouteException re = new RouteException(firstException);
+		assertThat(re.getFirstConnectException()).isSameAs(firstException);
+		assertThat(re.getLastConnectException()).isSameAs(firstException);
+	}
 
-  @Test public void getConnectionIOException_multiple() {
-    IOException firstException = new IOException();
-    IOException secondException = new IOException();
-    IOException thirdException = new IOException();
-    RouteException re = new RouteException(firstException);
-    re.addConnectException(secondException);
-    re.addConnectException(thirdException);
+	@Test
+	public void getConnectionIOException_multiple() {
+		IOException firstException = new IOException();
+		IOException secondException = new IOException();
+		IOException thirdException = new IOException();
+		RouteException re = new RouteException(firstException);
+		re.addConnectException(secondException);
+		re.addConnectException(thirdException);
 
-    IOException connectionIOException = re.getFirstConnectException();
-    assertThat(connectionIOException).isSameAs(firstException);
-    assertSuppressed(connectionIOException, suppressedExceptions -> {
-      assertThat(suppressedExceptions.size()).isEqualTo(2);
-      assertThat(suppressedExceptions.get(0)).isSameAs(secondException);
-      assertThat(suppressedExceptions.get(1)).isSameAs(thirdException);
-      return Unit.INSTANCE;
-    });
+		IOException connectionIOException = re.getFirstConnectException();
+		assertThat(connectionIOException).isSameAs(firstException);
+		assertSuppressed(connectionIOException, suppressedExceptions -> {
+			assertThat(suppressedExceptions.size()).isEqualTo(2);
+			assertThat(suppressedExceptions.get(0)).isSameAs(secondException);
+			assertThat(suppressedExceptions.get(1)).isSameAs(thirdException);
+			return Unit.INSTANCE;
+		});
 
-    assertThat(re.getLastConnectException()).isSameAs(thirdException);
-  }
+		assertThat(re.getLastConnectException()).isSameAs(thirdException);
+	}
 }

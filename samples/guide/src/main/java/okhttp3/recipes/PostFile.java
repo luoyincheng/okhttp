@@ -17,6 +17,7 @@ package okhttp3.recipes;
 
 import java.io.File;
 import java.io.IOException;
+
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -24,27 +25,27 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 
 public final class PostFile {
-  public static final MediaType MEDIA_TYPE_MARKDOWN
-      = MediaType.get("text/x-markdown; charset=utf-8");
+	public static final MediaType MEDIA_TYPE_MARKDOWN
+		= MediaType.get("text/x-markdown; charset=utf-8");
 
-  private final OkHttpClient client = new OkHttpClient();
+	private final OkHttpClient client = new OkHttpClient();
 
-  public void run() throws Exception {
-    File file = new File("README.md");
+	public static void main(String... args) throws Exception {
+		new PostFile().run();
+	}
 
-    Request request = new Request.Builder()
-        .url("https://api.github.com/markdown/raw")
-        .post(RequestBody.create(file, MEDIA_TYPE_MARKDOWN))
-        .build();
+	public void run() throws Exception {
+		File file = new File("README.md");
 
-    try (Response response = client.newCall(request).execute()) {
-      if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
+		Request request = new Request.Builder()
+			.url("https://api.github.com/markdown/raw")
+			.post(RequestBody.create(file, MEDIA_TYPE_MARKDOWN))
+			.build();
 
-      System.out.println(response.body().string());
-    }
-  }
+		try (Response response = client.newCall(request).execute()) {
+			if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
 
-  public static void main(String... args) throws Exception {
-    new PostFile().run();
-  }
+			System.out.println(response.body().string());
+		}
+	}
 }

@@ -20,29 +20,29 @@ import java.util.Deque
 import org.assertj.core.api.Assertions.assertThat
 
 class RecordingCookieJar : CookieJar {
-  private val requestCookies: Deque<List<Cookie>> = ArrayDeque()
-  private val responseCookies: Deque<List<Cookie>> = ArrayDeque()
+   private val requestCookies: Deque<List<Cookie>> = ArrayDeque()
+   private val responseCookies: Deque<List<Cookie>> = ArrayDeque()
 
-  fun enqueueRequestCookies(vararg cookies: Cookie) {
-    requestCookies.add(cookies.toList())
-  }
+   fun enqueueRequestCookies(vararg cookies: Cookie) {
+      requestCookies.add(cookies.toList())
+   }
 
-  fun takeResponseCookies(): List<Cookie> {
-    return responseCookies.removeFirst()
-  }
+   fun takeResponseCookies(): List<Cookie> {
+      return responseCookies.removeFirst()
+   }
 
-  fun assertResponseCookies(vararg cookies: String?) {
-    assertThat(takeResponseCookies().map(Cookie::toString)).containsExactly(*cookies)
-  }
+   fun assertResponseCookies(vararg cookies: String?) {
+      assertThat(takeResponseCookies().map(Cookie::toString)).containsExactly(*cookies)
+   }
 
-  override fun saveFromResponse(
-    url: HttpUrl,
-    cookies: List<Cookie>
-  ) {
-    responseCookies.add(cookies)
-  }
+   override fun saveFromResponse(
+      url: HttpUrl,
+      cookies: List<Cookie>
+   ) {
+      responseCookies.add(cookies)
+   }
 
-  override fun loadForRequest(url: HttpUrl): List<Cookie> {
-    return if (requestCookies.isEmpty()) emptyList() else requestCookies.removeFirst()
-  }
+   override fun loadForRequest(url: HttpUrl): List<Cookie> {
+      return if (requestCookies.isEmpty()) emptyList() else requestCookies.removeFirst()
+   }
 }

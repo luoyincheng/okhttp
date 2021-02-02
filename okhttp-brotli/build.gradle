@@ -1,8 +1,8 @@
 applyOsgi(this)
 
 jar {
-  // MANIFEST.MF, including OSGi bnd instructions.
-  bnd '''
+   // MANIFEST.MF, including OSGi bnd instructions.
+   bnd '''
   Export-Package: okhttp3.brotli
   Automatic-Module-Name: okhttp3.brotli
   Bundle-SymbolicName: com.squareup.okhttp3.brotli
@@ -10,19 +10,19 @@ jar {
 }
 
 dependencies {
-  api project(':okhttp')
-  api deps.brotli
-  compileOnly deps.jsr305
+   api project(':okhttp')
+   api deps.brotli
+   compileOnly deps.jsr305
 
-  testImplementation project(':okhttp-testing-support')
-  testImplementation deps.conscrypt
-  testImplementation deps.junit
-  testImplementation deps.assertj
+   testImplementation project(':okhttp-testing-support')
+   testImplementation deps.conscrypt
+   testImplementation deps.junit
+   testImplementation deps.assertj
 }
 
 afterEvaluate { project ->
-  project.tasks.dokka {
-    outputDirectory = "$rootDir/docs/4.x"
-    outputFormat = 'gfm'
-  }
+   project.tasks.dokka {
+      outputDirectory = "$rootDir/docs/4.x"
+      outputFormat = 'gfm'
+   }
 }

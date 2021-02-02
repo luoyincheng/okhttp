@@ -19,18 +19,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.fail;
 
 public class HttpUrlGetTest extends HttpUrlTest {
-  @Override
-  protected HttpUrl parse(String url) {
-    return HttpUrl.get(url);
-  }
+	@Override
+	protected HttpUrl parse(String url) {
+		return HttpUrl.get(url);
+	}
 
-  @Override
-  protected void assertInvalid(String string, String exceptionMessage) {
-    try {
-      parse(string);
-      fail("Expected get of \"" + string + "\" to throw with: " + exceptionMessage);
-    } catch (IllegalArgumentException e) {
-      assertThat(e.getMessage()).isEqualTo(exceptionMessage);
-    }
-  }
+	@Override
+	protected void assertInvalid(String string, String exceptionMessage) {
+		try {
+			parse(string);
+			fail("Expected get of \"" + string + "\" to throw with: " + exceptionMessage);
+		} catch (IllegalArgumentException e) {
+			assertThat(e.getMessage()).isEqualTo(exceptionMessage);
+		}
+	}
 }

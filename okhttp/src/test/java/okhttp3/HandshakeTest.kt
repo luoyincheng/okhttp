@@ -24,103 +24,103 @@ import org.junit.jupiter.api.Assertions.fail
 import org.junit.jupiter.api.Test
 
 class HandshakeTest {
-  val serverRoot = HeldCertificate.Builder()
+   val serverRoot = HeldCertificate.Builder()
       .certificateAuthority(1)
       .build()
-  val serverIntermediate = HeldCertificate.Builder()
+   val serverIntermediate = HeldCertificate.Builder()
       .certificateAuthority(0)
       .signedBy(serverRoot)
       .build()
-  val serverCertificate = HeldCertificate.Builder()
+   val serverCertificate = HeldCertificate.Builder()
       .signedBy(serverIntermediate)
       .build()
 
-  @Test
-  fun createFromParts() {
-    val handshake = Handshake.get(
-        tlsVersion = TlsVersion.TLS_1_3,
-        cipherSuite = CipherSuite.TLS_AES_128_GCM_SHA256,
-        peerCertificates = listOf(serverCertificate.certificate, serverIntermediate.certificate),
-        localCertificates = listOf()
-    )
+   @Test
+   fun createFromParts() {
+      val handshake = Handshake.get(
+         tlsVersion = TlsVersion.TLS_1_3,
+         cipherSuite = CipherSuite.TLS_AES_128_GCM_SHA256,
+         peerCertificates = listOf(serverCertificate.certificate, serverIntermediate.certificate),
+         localCertificates = listOf()
+      )
 
-    assertThat(handshake.tlsVersion).isEqualTo(TlsVersion.TLS_1_3)
-    assertThat(handshake.cipherSuite).isEqualTo(CipherSuite.TLS_AES_128_GCM_SHA256)
-    assertThat(handshake.peerCertificates).containsExactly(
-        serverCertificate.certificate, serverIntermediate.certificate)
-    assertThat(handshake.localPrincipal).isNull()
-    assertThat(handshake.peerPrincipal)
-        .isEqualTo(serverCertificate.certificate.subjectX500Principal)
-    assertThat(handshake.localCertificates).isEmpty()
-  }
+      assertThat(handshake.tlsVersion).isEqualTo(TlsVersion.TLS_1_3)
+      assertThat(handshake.cipherSuite).isEqualTo(CipherSuite.TLS_AES_128_GCM_SHA256)
+      assertThat(handshake.peerCertificates).containsExactly(
+         serverCertificate.certificate, serverIntermediate.certificate)
+      assertThat(handshake.localPrincipal).isNull()
+      assertThat(handshake.peerPrincipal)
+         .isEqualTo(serverCertificate.certificate.subjectX500Principal)
+      assertThat(handshake.localCertificates).isEmpty()
+   }
 
-  @Test
-  fun createFromSslSession() {
-    val sslSession = FakeSSLSession(
-        "TLSv1.3",
-        "TLS_AES_128_GCM_SHA256",
-        arrayOf(serverCertificate.certificate, serverIntermediate.certificate),
-        null
-    )
+   @Test
+   fun createFromSslSession() {
+      val sslSession = FakeSSLSession(
+         "TLSv1.3",
+         "TLS_AES_128_GCM_SHA256",
+         arrayOf(serverCertificate.certificate, serverIntermediate.certificate),
+         null
+      )
 
-    val handshake = sslSession.handshake()
+      val handshake = sslSession.handshake()
 
-    assertThat(handshake.tlsVersion).isEqualTo(TlsVersion.TLS_1_3)
-    assertThat(handshake.cipherSuite).isEqualTo(CipherSuite.TLS_AES_128_GCM_SHA256)
-    assertThat(handshake.peerCertificates).containsExactly(
-        serverCertificate.certificate, serverIntermediate.certificate)
-    assertThat(handshake.localPrincipal).isNull()
-    assertThat(handshake.peerPrincipal)
-        .isEqualTo(serverCertificate.certificate.subjectX500Principal)
-    assertThat(handshake.localCertificates).isEmpty()
-  }
+      assertThat(handshake.tlsVersion).isEqualTo(TlsVersion.TLS_1_3)
+      assertThat(handshake.cipherSuite).isEqualTo(CipherSuite.TLS_AES_128_GCM_SHA256)
+      assertThat(handshake.peerCertificates).containsExactly(
+         serverCertificate.certificate, serverIntermediate.certificate)
+      assertThat(handshake.localPrincipal).isNull()
+      assertThat(handshake.peerPrincipal)
+         .isEqualTo(serverCertificate.certificate.subjectX500Principal)
+      assertThat(handshake.localCertificates).isEmpty()
+   }
 
-  @Test
-  fun sslWithNullNullNull() {
-    val sslSession = FakeSSLSession(
-        "TLSv1.3",
-        "SSL_NULL_WITH_NULL_NULL",
-        arrayOf(serverCertificate.certificate, serverIntermediate.certificate),
-        null
-    )
+   @Test
+   fun sslWithNullNullNull() {
+      val sslSession = FakeSSLSession(
+         "TLSv1.3",
+         "SSL_NULL_WITH_NULL_NULL",
+         arrayOf(serverCertificate.certificate, serverIntermediate.certificate),
+         null
+      )
 
-    try {
-      sslSession.handshake()
-      fail()
-    } catch (expected: IOException) {
-      assertThat(expected).hasMessage("cipherSuite == SSL_NULL_WITH_NULL_NULL")
-    }
-  }
+      try {
+         sslSession.handshake()
+         fail()
+      } catch (expected: IOException) {
+         assertThat(expected).hasMessage("cipherSuite == SSL_NULL_WITH_NULL_NULL")
+      }
+   }
 
-  @Test
-  fun tlsWithNullNullNull() {
-    val sslSession = FakeSSLSession(
-        "TLSv1.3",
-        "TLS_NULL_WITH_NULL_NULL",
-        arrayOf(serverCertificate.certificate, serverIntermediate.certificate),
-        null
-    )
+   @Test
+   fun tlsWithNullNullNull() {
+      val sslSession = FakeSSLSession(
+         "TLSv1.3",
+         "TLS_NULL_WITH_NULL_NULL",
+         arrayOf(serverCertificate.certificate, serverIntermediate.certificate),
+         null
+      )
 
-    try {
-      sslSession.handshake()
-      fail()
-    } catch (expected: IOException) {
-      assertThat(expected).hasMessage("cipherSuite == TLS_NULL_WITH_NULL_NULL")
-    }
-  }
+      try {
+         sslSession.handshake()
+         fail()
+      } catch (expected: IOException) {
+         assertThat(expected).hasMessage("cipherSuite == TLS_NULL_WITH_NULL_NULL")
+      }
+   }
 
-  class FakeSSLSession(
-    private val protocol: String,
-    private val cipherSuite: String,
-    private val peerCertificates: Array<Certificate>?,
-    private val localCertificates: Array<Certificate>?
-  ) : DelegatingSSLSession(null) {
-    override fun getProtocol() = protocol
+   class FakeSSLSession(
+      private val protocol: String,
+      private val cipherSuite: String,
+      private val peerCertificates: Array<Certificate>?,
+      private val localCertificates: Array<Certificate>?
+   ) : DelegatingSSLSession(null) {
+      override fun getProtocol() = protocol
 
-    override fun getCipherSuite() = cipherSuite
+      override fun getCipherSuite() = cipherSuite
 
-    override fun getPeerCertificates() = peerCertificates
+      override fun getPeerCertificates() = peerCertificates
 
-    override fun getLocalCertificates() = localCertificates
-  }
+      override fun getLocalCertificates() = localCertificates
+   }
 }

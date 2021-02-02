@@ -26,31 +26,33 @@ import org.junit.jupiter.api.Assertions.fail
 import org.junit.jupiter.api.Test
 
 class UtilTest {
-  @Test fun immutableMap() {
-    val map = LinkedHashMap<String, String>()
-    map["a"] = "A"
-    val immutableCopy = map.toImmutableMap()
-    assertThat(mapOf("a" to "A")).isEqualTo(immutableCopy)
-    map.clear()
-    assertThat(mapOf("a" to "A")).isEqualTo(immutableCopy)
-    try {
-      (immutableCopy as MutableMap).clear()
-      fail()
-    } catch (_: UnsupportedOperationException) {
-    }
-  }
+   @Test
+   fun immutableMap() {
+      val map = LinkedHashMap<String, String>()
+      map["a"] = "A"
+      val immutableCopy = map.toImmutableMap()
+      assertThat(mapOf("a" to "A")).isEqualTo(immutableCopy)
+      map.clear()
+      assertThat(mapOf("a" to "A")).isEqualTo(immutableCopy)
+      try {
+         (immutableCopy as MutableMap).clear()
+         fail()
+      } catch (_: UnsupportedOperationException) {
+      }
+   }
 
-  @Test fun socketIsHealthy() {
-    val localhost = InetAddress.getLoopbackAddress()
-    val serverSocket = ServerSocket(0, 1, localhost)
+   @Test
+   fun socketIsHealthy() {
+      val localhost = InetAddress.getLoopbackAddress()
+      val serverSocket = ServerSocket(0, 1, localhost)
 
-    val socket = Socket()
-    socket.connect(serverSocket.localSocketAddress)
-    val socketSource = socket.source().buffer()
+      val socket = Socket()
+      socket.connect(serverSocket.localSocketAddress)
+      val socketSource = socket.source().buffer()
 
-    assertThat(socket.isHealthy(socketSource)).isTrue()
+      assertThat(socket.isHealthy(socketSource)).isTrue()
 
-    serverSocket.close()
-    assertThat(socket.isHealthy(socketSource)).isFalse()
-  }
+      serverSocket.close()
+      assertThat(socket.isHealthy(socketSource)).isFalse()
+   }
 }

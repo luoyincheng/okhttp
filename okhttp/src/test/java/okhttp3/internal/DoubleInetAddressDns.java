@@ -18,6 +18,7 @@ package okhttp3.internal;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.List;
+
 import okhttp3.Dns;
 
 import static java.util.Arrays.asList;
@@ -27,8 +28,9 @@ import static java.util.Arrays.asList;
  * fallbacks to guarantee that a fallback address is available.
  */
 public class DoubleInetAddressDns implements Dns {
-  @Override public List<InetAddress> lookup(String hostname) throws UnknownHostException {
-    List<InetAddress> addresses = Dns.SYSTEM.lookup(hostname);
-    return asList(addresses.get(0), addresses.get(0));
-  }
+	@Override
+	public List<InetAddress> lookup(String hostname) throws UnknownHostException {
+		List<InetAddress> addresses = Dns.SYSTEM.lookup(hostname);
+		return asList(addresses.get(0), addresses.get(0));
+	}
 }

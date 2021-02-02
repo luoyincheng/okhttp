@@ -19,8 +19,9 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
 class CertificatesTest {
-  @Test fun testRoundtrip() {
-    val certificateString = """
+   @Test
+   fun testRoundtrip() {
+      val certificateString = """
       -----BEGIN CERTIFICATE-----
       MIIBmjCCAQOgAwIBAgIBATANBgkqhkiG9w0BAQsFADATMREwDwYDVQQDEwhjYXNo
       LmFwcDAeFw03MDAxMDEwMDAwMDBaFw03MDAxMDEwMDAwMDFaMBMxETAPBgNVBAMT
@@ -34,7 +35,7 @@ class CertificatesTest {
       -----END CERTIFICATE-----
       
       """.trimIndent()
-    val certificate = certificateString.decodeCertificatePem()
-    assertEquals(certificateString, certificate.certificatePem())
-  }
+      val certificate = certificateString.decodeCertificatePem()
+      assertEquals(certificateString, certificate.certificatePem())
+   }
 }

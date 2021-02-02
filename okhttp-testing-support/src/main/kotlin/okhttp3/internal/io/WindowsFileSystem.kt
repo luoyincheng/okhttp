@@ -29,76 +29,76 @@ import okio.Source
  * [IOException] when asked to delete or rename an open file.
  */
 class WindowsFileSystem(val delegate: FileSystem) : FileSystem {
-  /** Guarded by itself. */
-  private val openFiles = Collections.synchronizedList(mutableListOf<File>())
+   /** Guarded by itself. */
+   private val openFiles = Collections.synchronizedList(mutableListOf<File>())
 
-  override fun source(file: File): Source = FileSource(file, delegate.source(file))
+   override fun source(file: File): Source = FileSource(file, delegate.source(file))
 
-  override fun sink(file: File): Sink = FileSink(file, delegate.sink(file))
+   override fun sink(file: File): Sink = FileSink(file, delegate.sink(file))
 
-  override fun appendingSink(file: File): Sink = FileSink(file, delegate.appendingSink(file))
+   override fun appendingSink(file: File): Sink = FileSink(file, delegate.appendingSink(file))
 
-  override fun delete(file: File) {
-    val fileOpen = file in openFiles
-    if (fileOpen) throw IOException("file is open $file")
-    delegate.delete(file)
-  }
+   override fun delete(file: File) {
+      val fileOpen = file in openFiles
+      if (fileOpen) throw IOException("file is open $file")
+      delegate.delete(file)
+   }
 
-  override fun exists(file: File) = delegate.exists(file)
+   override fun exists(file: File) = delegate.exists(file)
 
-  override fun size(file: File) = delegate.size(file)
+   override fun size(file: File) = delegate.size(file)
 
-  override fun rename(from: File, to: File) {
-    val fromOpen = from in openFiles
-    if (fromOpen) throw IOException("file is open $from")
+   override fun rename(from: File, to: File) {
+      val fromOpen = from in openFiles
+      if (fromOpen) throw IOException("file is open $from")
 
-    val toOpen = to in openFiles
-    if (toOpen) throw IOException("file is open $to")
+      val toOpen = to in openFiles
+      if (toOpen) throw IOException("file is open $to")
 
-    delegate.rename(from, to)
-  }
+      delegate.rename(from, to)
+   }
 
-  override fun deleteContents(directory: File) {
-    val openChild = synchronized(openFiles) {
-      openFiles.firstOrNull { it.isDescendentOf(directory) }
-    }
-    if (openChild != null) throw IOException("file is open $openChild")
-    delegate.deleteContents(directory)
-  }
-
-  private inner class FileSink(val file: File, delegate: Sink) : ForwardingSink(delegate) {
-    var closed = false
-
-    init {
-      openFiles += file
-    }
-
-    override fun close() {
-      if (!closed) {
-        closed = true
-        val removed = openFiles.remove(file)
-        check(removed)
+   override fun deleteContents(directory: File) {
+      val openChild = synchronized(openFiles) {
+         openFiles.firstOrNull { it.isDescendentOf(directory) }
       }
-      delegate.close()
-    }
-  }
+      if (openChild != null) throw IOException("file is open $openChild")
+      delegate.deleteContents(directory)
+   }
 
-  private inner class FileSource(val file: File, delegate: Source) : ForwardingSource(delegate) {
-    var closed = false
+   private inner class FileSink(val file: File, delegate: Sink) : ForwardingSink(delegate) {
+      var closed = false
 
-    init {
-      openFiles += file
-    }
-
-    override fun close() {
-      if (!closed) {
-        closed = true
-        val removed = openFiles.remove(file)
-        check(removed)
+      init {
+         openFiles += file
       }
-      delegate.close()
-    }
-  }
 
-  override fun toString() = "$delegate for Windows™"
+      override fun close() {
+         if (!closed) {
+            closed = true
+            val removed = openFiles.remove(file)
+            check(removed)
+         }
+         delegate.close()
+      }
+   }
+
+   private inner class FileSource(val file: File, delegate: Source) : ForwardingSource(delegate) {
+      var closed = false
+
+      init {
+         openFiles += file
+      }
+
+      override fun close() {
+         if (!closed) {
+            closed = true
+            val removed = openFiles.remove(file)
+            check(removed)
+         }
+         delegate.close()
+      }
+   }
+
+   override fun toString() = "$delegate for Windows™"
 }

@@ -31,19 +31,21 @@ import org.junit.runner.RunWith
  */
 @RunWith(AndroidJUnit4::class)
 class ApacheHttpClientTest {
-  private var httpClient = HttpClients.createDefault()
+   private var httpClient = HttpClients.createDefault()
 
-  @After fun tearDown() {
-    httpClient.close()
-  }
+   @After
+   fun tearDown() {
+      httpClient.close()
+   }
 
-  @Test fun get() {
-    val request = HttpGet("https://google.com/robots.txt")
+   @Test
+   fun get() {
+      val request = HttpGet("https://google.com/robots.txt")
 
-    httpClient.execute(request).use { response ->
-      assertEquals(200, response.code)
-      // TODO enable ALPN later
-      assertEquals(HttpVersion.HTTP_1_1, response.version)
-    }
-  }
+      httpClient.execute(request).use { response ->
+         assertEquals(200, response.code)
+         // TODO enable ALPN later
+         assertEquals(HttpVersion.HTTP_1_1, response.version)
+      }
+   }
 }

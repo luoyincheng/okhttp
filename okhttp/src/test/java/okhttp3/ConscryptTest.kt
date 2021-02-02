@@ -29,65 +29,71 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.RegisterExtension
 
 class ConscryptTest {
-  @JvmField @RegisterExtension val platform = PlatformRule.conscrypt()
-  @JvmField @RegisterExtension val clientTestRule = OkHttpClientTestRule()
+   @JvmField
+   @RegisterExtension
+   val platform = PlatformRule.conscrypt()
 
-  private val client = clientTestRule.newClient()
+   @JvmField
+   @RegisterExtension
+   val clientTestRule = OkHttpClientTestRule()
 
-  @BeforeEach fun setUp() {
-    platform.assumeConscrypt()
-  }
+   private val client = clientTestRule.newClient()
 
-  @Test
-  fun testTrustManager() {
-    assertThat(Conscrypt.isConscrypt(Platform.get().platformTrustManager())).isTrue()
-  }
+   @BeforeEach
+   fun setUp() {
+      platform.assumeConscrypt()
+   }
 
-  @Test
-  @Disabled
-  fun testMozilla() {
-    assumeNetwork()
+   @Test
+   fun testTrustManager() {
+      assertThat(Conscrypt.isConscrypt(Platform.get().platformTrustManager())).isTrue()
+   }
 
-    val request = Request.Builder().url("https://mozilla.org/robots.txt").build()
+   @Test
+   @Disabled
+   fun testMozilla() {
+      assumeNetwork()
 
-    client.newCall(request).execute().use {
-      assertThat(it.protocol).isEqualTo(Protocol.HTTP_2)
-      assertThat(it.handshake!!.tlsVersion).isEqualTo(TlsVersion.TLS_1_3)
-    }
-  }
+      val request = Request.Builder().url("https://mozilla.org/robots.txt").build()
 
-  @Test
-  @Disabled
-  fun testGoogle() {
-    assumeNetwork()
-
-    val request = Request.Builder().url("https://google.com/robots.txt").build()
-
-    client.newCall(request).execute().use {
-      assertThat(it.protocol).isEqualTo(Protocol.HTTP_2)
-      if (it.handshake!!.tlsVersion != TlsVersion.TLS_1_3) {
-        System.err.println("Flaky TLSv1.3 with google")
-//    assertThat(it.handshake()!!.tlsVersion).isEqualTo(TlsVersion.TLS_1_3)
+      client.newCall(request).execute().use {
+         assertThat(it.protocol).isEqualTo(Protocol.HTTP_2)
+         assertThat(it.handshake!!.tlsVersion).isEqualTo(TlsVersion.TLS_1_3)
       }
-    }
-  }
+   }
 
-  @Test
-  fun testBuildIfSupported() {
-    val actual = ConscryptPlatform.buildIfSupported()
-    assertThat(actual).isNotNull
-  }
+   @Test
+   @Disabled
+   fun testGoogle() {
+      assumeNetwork()
 
-  @Test
-  fun testVersion() {
-    val version = Conscrypt.version()
+      val request = Request.Builder().url("https://google.com/robots.txt").build()
 
-    assertTrue(ConscryptPlatform.atLeastVersion(1, 4, 9))
-    assertTrue(ConscryptPlatform.atLeastVersion(version.major()))
-    assertTrue(ConscryptPlatform.atLeastVersion(version.major(), version.minor()))
-    assertTrue(ConscryptPlatform.atLeastVersion(version.major(), version.minor(), version.patch()))
-    assertFalse(ConscryptPlatform.atLeastVersion(version.major(), version.minor(), version.patch() + 1))
-    assertFalse(ConscryptPlatform.atLeastVersion(version.major(), version.minor() + 1))
-    assertFalse(ConscryptPlatform.atLeastVersion(version.major() + 1))
-  }
+      client.newCall(request).execute().use {
+         assertThat(it.protocol).isEqualTo(Protocol.HTTP_2)
+         if (it.handshake!!.tlsVersion != TlsVersion.TLS_1_3) {
+            System.err.println("Flaky TLSv1.3 with google")
+//    assertThat(it.handshake()!!.tlsVersion).isEqualTo(TlsVersion.TLS_1_3)
+         }
+      }
+   }
+
+   @Test
+   fun testBuildIfSupported() {
+      val actual = ConscryptPlatform.buildIfSupported()
+      assertThat(actual).isNotNull
+   }
+
+   @Test
+   fun testVersion() {
+      val version = Conscrypt.version()
+
+      assertTrue(ConscryptPlatform.atLeastVersion(1, 4, 9))
+      assertTrue(ConscryptPlatform.atLeastVersion(version.major()))
+      assertTrue(ConscryptPlatform.atLeastVersion(version.major(), version.minor()))
+      assertTrue(ConscryptPlatform.atLeastVersion(version.major(), version.minor(), version.patch()))
+      assertFalse(ConscryptPlatform.atLeastVersion(version.major(), version.minor(), version.patch() + 1))
+      assertFalse(ConscryptPlatform.atLeastVersion(version.major(), version.minor() + 1))
+      assertFalse(ConscryptPlatform.atLeastVersion(version.major() + 1))
+   }
 }

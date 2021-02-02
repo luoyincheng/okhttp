@@ -39,127 +39,140 @@ import javax.net.ssl.HostnameVerifier
 import javax.net.ssl.SSLSession
 
 class CacheCorruptionTest(
-  var server: MockWebServer
+   var server: MockWebServer
 ) {
-  @JvmField @RegisterExtension var fileSystem = InMemoryFileSystem()
-  @JvmField @RegisterExtension val clientTestRule = OkHttpClientTestRule()
-  @JvmField @RegisterExtension val platform = PlatformRule()
+   @JvmField
+   @RegisterExtension
+   var fileSystem = InMemoryFileSystem()
 
-  private val handshakeCertificates = localhost()
-  private lateinit var client: OkHttpClient
-  private lateinit var cache: Cache
-  private val NULL_HOSTNAME_VERIFIER =
-    HostnameVerifier { _: String?, _: SSLSession? -> true }
-  private val cookieManager = CookieManager()
+   @JvmField
+   @RegisterExtension
+   val clientTestRule = OkHttpClientTestRule()
 
-  @BeforeEach fun setUp() {
-    platform.assumeNotOpenJSSE()
-    platform.assumeNotBouncyCastle()
-    server.protocolNegotiationEnabled = false
-    cache = buildCache(File("/cache/"), Int.MAX_VALUE.toLong(), fileSystem)
-    client = clientTestRule.newClientBuilder()
-      .cache(cache)
-      .cookieJar(JavaNetCookieJar(cookieManager))
-      .build()
-  }
+   @JvmField
+   @RegisterExtension
+   val platform = PlatformRule()
 
-  @AfterEach fun tearDown() {
-    ResponseCache.setDefault(null)
-    if (this::cache.isInitialized) {
-      cache.delete()
-    }
-  }
+   private val handshakeCertificates = localhost()
+   private lateinit var client: OkHttpClient
+   private lateinit var cache: Cache
+   private val NULL_HOSTNAME_VERIFIER =
+      HostnameVerifier { _: String?, _: SSLSession? -> true }
+   private val cookieManager = CookieManager()
 
-  @Test fun corruptedCipher() {
-    val response = testCorruptingCache {
-      corruptMetadata {
-        // mess with cipher suite
-        it.replace("TLS_", "SLT_")
+   @BeforeEach
+   fun setUp() {
+      platform.assumeNotOpenJSSE()
+      platform.assumeNotBouncyCastle()
+      server.protocolNegotiationEnabled = false
+      cache = buildCache(File("/cache/"), Int.MAX_VALUE.toLong(), fileSystem)
+      client = clientTestRule.newClientBuilder()
+         .cache(cache)
+         .cookieJar(JavaNetCookieJar(cookieManager))
+         .build()
+   }
+
+   @AfterEach
+   fun tearDown() {
+      ResponseCache.setDefault(null)
+      if (this::cache.isInitialized) {
+         cache.delete()
       }
-    }
+   }
 
-    assertThat(response.body!!.string()).isEqualTo("ABC.1") // cached
-    assertThat(cache.requestCount()).isEqualTo(2)
-    assertThat(cache.networkCount()).isEqualTo(1)
-    assertThat(cache.hitCount()).isEqualTo(1)
-
-    assertThat(response.handshake?.cipherSuite?.javaName).startsWith("SLT_")
-  }
-
-  @Test fun truncatedMetadataEntry() {
-    val response = testCorruptingCache {
-      corruptMetadata {
-        // truncate metadata to 1/4 of length
-        it.substring(0, it.length / 4)
+   @Test
+   fun corruptedCipher() {
+      val response = testCorruptingCache {
+         corruptMetadata {
+            // mess with cipher suite
+            it.replace("TLS_", "SLT_")
+         }
       }
-    }
 
-    assertThat(response.body!!.string()).isEqualTo("ABC.2") // not cached
-    assertThat(cache.requestCount()).isEqualTo(2)
-    assertThat(cache.networkCount()).isEqualTo(2)
-    assertThat(cache.hitCount()).isEqualTo(0)
-  }
+      assertThat(response.body!!.string()).isEqualTo("ABC.1") // cached
+      assertThat(cache.requestCount()).isEqualTo(2)
+      assertThat(cache.networkCount()).isEqualTo(1)
+      assertThat(cache.hitCount()).isEqualTo(1)
 
-  @Test fun corruptedUrl() {
-    val response = testCorruptingCache {
-      corruptMetadata {
-        // strip https scheme
-        it.substring(5)
+      assertThat(response.handshake?.cipherSuite?.javaName).startsWith("SLT_")
+   }
+
+   @Test
+   fun truncatedMetadataEntry() {
+      val response = testCorruptingCache {
+         corruptMetadata {
+            // truncate metadata to 1/4 of length
+            it.substring(0, it.length / 4)
+         }
       }
-    }
 
-    assertThat(response.body!!.string()).isEqualTo("ABC.2") // not cached
-    assertThat(cache.requestCount()).isEqualTo(2)
-    assertThat(cache.networkCount()).isEqualTo(2)
-    assertThat(cache.hitCount()).isEqualTo(0)
-  }
+      assertThat(response.body!!.string()).isEqualTo("ABC.2") // not cached
+      assertThat(cache.requestCount()).isEqualTo(2)
+      assertThat(cache.networkCount()).isEqualTo(2)
+      assertThat(cache.hitCount()).isEqualTo(0)
+   }
 
-  private fun corruptMetadata(corruptor: (String) -> String) {
-    val metadataFile = fileSystem.files.keys.find { it.name.endsWith(".0") }
-    val metadataBuffer = fileSystem.files[metadataFile]
+   @Test
+   fun corruptedUrl() {
+      val response = testCorruptingCache {
+         corruptMetadata {
+            // strip https scheme
+            it.substring(5)
+         }
+      }
 
-    val contents = metadataBuffer!!.peek().readUtf8()
+      assertThat(response.body!!.string()).isEqualTo("ABC.2") // not cached
+      assertThat(cache.requestCount()).isEqualTo(2)
+      assertThat(cache.networkCount()).isEqualTo(2)
+      assertThat(cache.hitCount()).isEqualTo(0)
+   }
 
-    metadataBuffer.clear()
-    metadataBuffer.writeUtf8(corruptor(contents))
-  }
+   private fun corruptMetadata(corruptor: (String) -> String) {
+      val metadataFile = fileSystem.files.keys.find { it.name.endsWith(".0") }
+      val metadataBuffer = fileSystem.files[metadataFile]
 
-  private fun testCorruptingCache(corruptor: () -> Unit): Response {
-    server.useHttps(handshakeCertificates.sslSocketFactory(), false)
-    server.enqueue(MockResponse()
-        .addHeader("Last-Modified: " + formatDate(-1, TimeUnit.HOURS))
-        .addHeader("Expires: " + formatDate(1, TimeUnit.HOURS))
-        .setBody("ABC.1"))
-    server.enqueue(MockResponse()
-      .addHeader("Last-Modified: " + formatDate(-1, TimeUnit.HOURS))
-      .addHeader("Expires: " + formatDate(1, TimeUnit.HOURS))
-      .setBody("ABC.2"))
-    client = client.newBuilder()
-        .sslSocketFactory(
-          handshakeCertificates.sslSocketFactory(), handshakeCertificates.trustManager)
-        .hostnameVerifier(NULL_HOSTNAME_VERIFIER)
-        .build()
-    val request: Request = Request.Builder().url(server.url("/")).build()
-    val response1: Response = client.newCall(request).execute()
-    val bodySource = response1.body!!.source()
-    assertThat(bodySource.readUtf8()).isEqualTo("ABC.1")
+      val contents = metadataBuffer!!.peek().readUtf8()
 
-    corruptor()
+      metadataBuffer.clear()
+      metadataBuffer.writeUtf8(corruptor(contents))
+   }
 
-    return client.newCall(request).execute()
-  }
+   private fun testCorruptingCache(corruptor: () -> Unit): Response {
+      server.useHttps(handshakeCertificates.sslSocketFactory(), false)
+      server.enqueue(MockResponse()
+         .addHeader("Last-Modified: " + formatDate(-1, TimeUnit.HOURS))
+         .addHeader("Expires: " + formatDate(1, TimeUnit.HOURS))
+         .setBody("ABC.1"))
+      server.enqueue(MockResponse()
+         .addHeader("Last-Modified: " + formatDate(-1, TimeUnit.HOURS))
+         .addHeader("Expires: " + formatDate(1, TimeUnit.HOURS))
+         .setBody("ABC.2"))
+      client = client.newBuilder()
+         .sslSocketFactory(
+            handshakeCertificates.sslSocketFactory(), handshakeCertificates.trustManager)
+         .hostnameVerifier(NULL_HOSTNAME_VERIFIER)
+         .build()
+      val request: Request = Request.Builder().url(server.url("/")).build()
+      val response1: Response = client.newCall(request).execute()
+      val bodySource = response1.body!!.source()
+      assertThat(bodySource.readUtf8()).isEqualTo("ABC.1")
 
-  /**
-   * @param delta the offset from the current date to use. Negative values yield dates in the past;
-   * positive values yield dates in the future.
-   */
-  private fun formatDate(delta: Long, timeUnit: TimeUnit): String? {
-    return formatDate(Date(System.currentTimeMillis() + timeUnit.toMillis(delta)))
-  }
+      corruptor()
 
-  private fun formatDate(date: Date): String? {
-    val rfc1123: DateFormat = SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz", Locale.US)
-    rfc1123.timeZone = TimeZone.getTimeZone("GMT")
-    return rfc1123.format(date)
-  }
+      return client.newCall(request).execute()
+   }
+
+   /**
+    * @param delta the offset from the current date to use. Negative values yield dates in the past;
+    * positive values yield dates in the future.
+    */
+   private fun formatDate(delta: Long, timeUnit: TimeUnit): String? {
+      return formatDate(Date(System.currentTimeMillis() + timeUnit.toMillis(delta)))
+   }
+
+   private fun formatDate(date: Date): String? {
+      val rfc1123: DateFormat = SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz", Locale.US)
+      rfc1123.timeZone = TimeZone.getTimeZone("GMT")
+      return rfc1123.format(date)
+   }
 }

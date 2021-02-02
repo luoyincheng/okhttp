@@ -1,2 +1,2 @@
-[*.kt]
-indent_size = 2
+[{*.kt, *.java, *.xml, *.gradle, *.md, *.json}]
+indent_size = 3

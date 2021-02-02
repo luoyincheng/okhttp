@@ -32,65 +32,65 @@ import org.bouncycastle.jsse.provider.BouncyCastleJsseProvider
  * Requires org.bouncycastle:bctls-jdk15on on the classpath.
  */
 class BouncyCastlePlatform private constructor() : Platform() {
-  private val provider: Provider = BouncyCastleJsseProvider()
+   private val provider: Provider = BouncyCastleJsseProvider()
 
-  override fun newSSLContext(): SSLContext =
+   override fun newSSLContext(): SSLContext =
       SSLContext.getInstance("TLS", provider)
 
-  override fun platformTrustManager(): X509TrustManager {
-    val factory = TrustManagerFactory.getInstance(
-        "PKIX", BouncyCastleJsseProvider.PROVIDER_NAME)
-    factory.init(null as KeyStore?)
-    val trustManagers = factory.trustManagers!!
-    check(trustManagers.size == 1 && trustManagers[0] is X509TrustManager) {
-      "Unexpected default trust managers: ${trustManagers.contentToString()}"
-    }
-    return trustManagers[0] as X509TrustManager
-  }
+   override fun platformTrustManager(): X509TrustManager {
+      val factory = TrustManagerFactory.getInstance(
+         "PKIX", BouncyCastleJsseProvider.PROVIDER_NAME)
+      factory.init(null as KeyStore?)
+      val trustManagers = factory.trustManagers!!
+      check(trustManagers.size == 1 && trustManagers[0] is X509TrustManager) {
+         "Unexpected default trust managers: ${trustManagers.contentToString()}"
+      }
+      return trustManagers[0] as X509TrustManager
+   }
 
-  override fun trustManager(sslSocketFactory: SSLSocketFactory): X509TrustManager? =
+   override fun trustManager(sslSocketFactory: SSLSocketFactory): X509TrustManager? =
       throw UnsupportedOperationException(
-          "clientBuilder.sslSocketFactory(SSLSocketFactory) not supported with BouncyCastle")
+         "clientBuilder.sslSocketFactory(SSLSocketFactory) not supported with BouncyCastle")
 
-  override fun configureTlsExtensions(
-    sslSocket: SSLSocket,
-    hostname: String?,
-    protocols: List<@JvmSuppressWildcards Protocol>
-  ) {
-    if (sslSocket is BCSSLSocket) {
-      val sslParameters = sslSocket.parameters
-
-      // Enable ALPN.
-      val names = alpnProtocolNames(protocols)
-      sslParameters.applicationProtocols = names.toTypedArray()
-
-      sslSocket.parameters = sslParameters
-    } else {
-      super.configureTlsExtensions(sslSocket, hostname, protocols)
-    }
-  }
-
-  override fun getSelectedProtocol(sslSocket: SSLSocket): String? =
+   override fun configureTlsExtensions(
+      sslSocket: SSLSocket,
+      hostname: String?,
+      protocols: List<@JvmSuppressWildcards Protocol>
+   ) {
       if (sslSocket is BCSSLSocket) {
-        when (val protocol = (sslSocket as BCSSLSocket).applicationProtocol) {
-          // Handles both un-configured and none selected.
-          null, "" -> null
-          else -> protocol
-        }
+         val sslParameters = sslSocket.parameters
+
+         // Enable ALPN.
+         val names = alpnProtocolNames(protocols)
+         sslParameters.applicationProtocols = names.toTypedArray()
+
+         sslSocket.parameters = sslParameters
       } else {
-        super.getSelectedProtocol(sslSocket)
+         super.configureTlsExtensions(sslSocket, hostname, protocols)
+      }
+   }
+
+   override fun getSelectedProtocol(sslSocket: SSLSocket): String? =
+      if (sslSocket is BCSSLSocket) {
+         when (val protocol = (sslSocket as BCSSLSocket).applicationProtocol) {
+            // Handles both un-configured and none selected.
+            null, "" -> null
+            else -> protocol
+         }
+      } else {
+         super.getSelectedProtocol(sslSocket)
       }
 
-  companion object {
-    val isSupported: Boolean = try {
-      // Trigger an early exception over a fatal error, prefer a RuntimeException over Error.
-      Class.forName("org.bouncycastle.jsse.provider.BouncyCastleJsseProvider", false, javaClass.classLoader)
+   companion object {
+      val isSupported: Boolean = try {
+         // Trigger an early exception over a fatal error, prefer a RuntimeException over Error.
+         Class.forName("org.bouncycastle.jsse.provider.BouncyCastleJsseProvider", false, javaClass.classLoader)
 
-      true
-    } catch (_: ClassNotFoundException) {
-      false
-    }
+         true
+      } catch (_: ClassNotFoundException) {
+         false
+      }
 
-    fun buildIfSupported(): BouncyCastlePlatform? = if (isSupported) BouncyCastlePlatform() else null
-  }
+      fun buildIfSupported(): BouncyCastlePlatform? = if (isSupported) BouncyCastlePlatform() else null
+   }
 }

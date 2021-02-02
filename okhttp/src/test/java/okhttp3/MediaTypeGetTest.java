@@ -19,18 +19,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.fail;
 
 public class MediaTypeGetTest extends MediaTypeTest {
-  @Override
-  protected MediaType parse(String string) {
-    return MediaType.get(string);
-  }
+	@Override
+	protected MediaType parse(String string) {
+		return MediaType.get(string);
+	}
 
-  @Override
-  protected void assertInvalid(String string, String exceptionMessage) {
-    try {
-      parse(string);
-      fail("Expected get of \"" + string + "\" to throw with: " + exceptionMessage);
-    } catch (IllegalArgumentException e) {
-      assertThat(e.getMessage()).isEqualTo(exceptionMessage);
-    }
-  }
+	@Override
+	protected void assertInvalid(String string, String exceptionMessage) {
+		try {
+			parse(string);
+			fail("Expected get of \"" + string + "\" to throw with: " + exceptionMessage);
+		} catch (IllegalArgumentException e) {
+			assertThat(e.getMessage()).isEqualTo(exceptionMessage);
+		}
+	}
 }

@@ -21,28 +21,28 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 
 class CertificatePinning {
-  private val client = OkHttpClient.Builder()
+   private val client = OkHttpClient.Builder()
       .certificatePinner(
-          CertificatePinner.Builder()
-              .add("publicobject.com", "sha256/Vjs8r4z+80wjNcr1YKepWQboSIRi63WsWXhIMN+eWys=")
-              .build())
+         CertificatePinner.Builder()
+            .add("publicobject.com", "sha256/Vjs8r4z+80wjNcr1YKepWQboSIRi63WsWXhIMN+eWys=")
+            .build())
       .build()
 
-  fun run() {
-    val request = Request.Builder()
-        .url("https://publicobject.com/robots.txt")
-        .build()
+   fun run() {
+      val request = Request.Builder()
+         .url("https://publicobject.com/robots.txt")
+         .build()
 
-    client.newCall(request).execute().use { response ->
-      if (!response.isSuccessful) throw IOException("Unexpected code $response")
+      client.newCall(request).execute().use { response ->
+         if (!response.isSuccessful) throw IOException("Unexpected code $response")
 
-      for (certificate in response.handshake!!.peerCertificates) {
-        println(CertificatePinner.pin(certificate))
+         for (certificate in response.handshake!!.peerCertificates) {
+            println(CertificatePinner.pin(certificate))
+         }
       }
-    }
-  }
+   }
 }
 
 fun main() {
-  CertificatePinning().run()
+   CertificatePinning().run()
 }

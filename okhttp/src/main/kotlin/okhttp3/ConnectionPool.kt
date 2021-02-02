@@ -31,29 +31,29 @@ import okhttp3.internal.connection.RealConnectionPool
  * inactivity.
  */
 class ConnectionPool internal constructor(
-  internal val delegate: RealConnectionPool
+   internal val delegate: RealConnectionPool
 ) {
-  constructor(
-    maxIdleConnections: Int,
-    keepAliveDuration: Long,
-    timeUnit: TimeUnit
-  ) : this(RealConnectionPool(
+   constructor(
+      maxIdleConnections: Int,
+      keepAliveDuration: Long,
+      timeUnit: TimeUnit
+   ) : this(RealConnectionPool(
       taskRunner = TaskRunner.INSTANCE,
       maxIdleConnections = maxIdleConnections,
       keepAliveDuration = keepAliveDuration,
       timeUnit = timeUnit
-  ))
+   ))
 
-  constructor() : this(5, 5, TimeUnit.MINUTES)
+   constructor() : this(5, 5, TimeUnit.MINUTES)
 
-  /** Returns the number of idle connections in the pool. */
-  fun idleConnectionCount(): Int = delegate.idleConnectionCount()
+   /** Returns the number of idle connections in the pool. */
+   fun idleConnectionCount(): Int = delegate.idleConnectionCount()
 
-  /** Returns total number of connections in the pool. */
-  fun connectionCount(): Int = delegate.connectionCount()
+   /** Returns total number of connections in the pool. */
+   fun connectionCount(): Int = delegate.connectionCount()
 
-  /** Close and remove all idle connections in the pool. */
-  fun evictAll() {
-    delegate.evictAll()
-  }
+   /** Close and remove all idle connections in the pool. */
+   fun evictAll() {
+      delegate.evictAll()
+   }
 }

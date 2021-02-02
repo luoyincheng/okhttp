@@ -20,15 +20,15 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 
 class InjectedConstructorTest(
-  private val server: MockWebServer
+   private val server: MockWebServer
 ) {
-  @Test
-  fun testOne() {
-    assertThat(server.started).isTrue()
-  }
+   @Test
+   fun testOne() {
+      assertThat(server.started).isTrue()
+   }
 
-  @Test
-  fun testTwo() {
-    assertThat(server.started).isTrue()
-  }
+   @Test
+   fun testTwo() {
+      assertThat(server.started).isTrue()
+   }
 }

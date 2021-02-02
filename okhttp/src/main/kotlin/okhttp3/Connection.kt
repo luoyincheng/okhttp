@@ -67,26 +67,26 @@ import java.net.Socket
  * been found. But only complete the stream once its data stream has been exhausted.
  */
 interface Connection {
-  /** Returns the route used by this connection. */
-  fun route(): Route
+   /** Returns the route used by this connection. */
+   fun route(): Route
 
-  /**
-   * Returns the socket that this connection is using. Returns an
-   * [SSL socket][javax.net.ssl.SSLSocket] if this connection is HTTPS. If this is an HTTP/2
-   * connection the socket may be shared by multiple concurrent calls.
-   */
-  fun socket(): Socket
+   /**
+    * Returns the socket that this connection is using. Returns an
+    * [SSL socket][javax.net.ssl.SSLSocket] if this connection is HTTPS. If this is an HTTP/2
+    * connection the socket may be shared by multiple concurrent calls.
+    */
+   fun socket(): Socket
 
-  /**
-   * Returns the TLS handshake used to establish this connection, or null if the connection is not
-   * HTTPS.
-   */
-  fun handshake(): Handshake?
+   /**
+    * Returns the TLS handshake used to establish this connection, or null if the connection is not
+    * HTTPS.
+    */
+   fun handshake(): Handshake?
 
-  /**
-   * Returns the protocol negotiated by this connection, or [Protocol.HTTP_1_1] if no protocol
-   * has been negotiated. This method returns [Protocol.HTTP_1_1] even if the remote peer is using
-   * [Protocol.HTTP_1_0].
-   */
-  fun protocol(): Protocol
+   /**
+    * Returns the protocol negotiated by this connection, or [Protocol.HTTP_1_1] if no protocol
+    * has been negotiated. This method returns [Protocol.HTTP_1_1] even if the remote peer is using
+    * [Protocol.HTTP_1_0].
+    */
+   fun protocol(): Protocol
 }

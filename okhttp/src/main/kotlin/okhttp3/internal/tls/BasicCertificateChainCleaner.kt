@@ -34,93 +34,93 @@ import javax.net.ssl.SSLPeerUnverifiedException
  * [Conscrypt]: https://conscrypt.org/
  */
 class BasicCertificateChainCleaner(
-  private val trustRootIndex: TrustRootIndex
+   private val trustRootIndex: TrustRootIndex
 ) : CertificateChainCleaner() {
 
-  /**
-   * Returns a cleaned chain for [chain].
-   *
-   * This method throws if the complete chain to a trusted CA certificate cannot be constructed.
-   * This is unexpected unless the trust root index in this class has a different trust manager than
-   * what was used to establish [chain].
-   */
-  @Throws(SSLPeerUnverifiedException::class)
-  override fun clean(chain: List<Certificate>, hostname: String): List<Certificate> {
-    val queue: Deque<Certificate> = ArrayDeque(chain)
-    val result = mutableListOf<Certificate>()
-    result.add(queue.removeFirst())
-    var foundTrustedCertificate = false
+   /**
+    * Returns a cleaned chain for [chain].
+    *
+    * This method throws if the complete chain to a trusted CA certificate cannot be constructed.
+    * This is unexpected unless the trust root index in this class has a different trust manager than
+    * what was used to establish [chain].
+    */
+   @Throws(SSLPeerUnverifiedException::class)
+   override fun clean(chain: List<Certificate>, hostname: String): List<Certificate> {
+      val queue: Deque<Certificate> = ArrayDeque(chain)
+      val result = mutableListOf<Certificate>()
+      result.add(queue.removeFirst())
+      var foundTrustedCertificate = false
 
-    followIssuerChain@
-    for (c in 0 until MAX_SIGNERS) {
-      val toVerify = result[result.size - 1] as X509Certificate
+      followIssuerChain@
+      for (c in 0 until MAX_SIGNERS) {
+         val toVerify = result[result.size - 1] as X509Certificate
 
-      // If this cert has been signed by a trusted cert, use that. Add the trusted certificate to
-      // the end of the chain unless it's already present. (That would happen if the first
-      // certificate in the chain is itself a self-signed and trusted CA certificate.)
-      val trustedCert = trustRootIndex.findByIssuerAndSignature(toVerify)
-      if (trustedCert != null) {
-        if (result.size > 1 || toVerify != trustedCert) {
-          result.add(trustedCert)
-        }
-        if (verifySignature(trustedCert, trustedCert)) {
-          return result // The self-signed cert is a root CA. We're done.
-        }
-        foundTrustedCertificate = true
-        continue
+         // If this cert has been signed by a trusted cert, use that. Add the trusted certificate to
+         // the end of the chain unless it's already present. (That would happen if the first
+         // certificate in the chain is itself a self-signed and trusted CA certificate.)
+         val trustedCert = trustRootIndex.findByIssuerAndSignature(toVerify)
+         if (trustedCert != null) {
+            if (result.size > 1 || toVerify != trustedCert) {
+               result.add(trustedCert)
+            }
+            if (verifySignature(trustedCert, trustedCert)) {
+               return result // The self-signed cert is a root CA. We're done.
+            }
+            foundTrustedCertificate = true
+            continue
+         }
+
+         // Search for the certificate in the chain that signed this certificate. This is typically
+         // the next element in the chain, but it could be any element.
+         val i = queue.iterator()
+         while (i.hasNext()) {
+            val signingCert = i.next() as X509Certificate
+            if (verifySignature(toVerify, signingCert)) {
+               i.remove()
+               result.add(signingCert)
+               continue@followIssuerChain
+            }
+         }
+
+         // We've reached the end of the chain. If any cert in the chain is trusted, we're done.
+         if (foundTrustedCertificate) {
+            return result
+         }
+
+         // The last link isn't trusted. Fail.
+         throw SSLPeerUnverifiedException(
+            "Failed to find a trusted cert that signed $toVerify")
       }
 
-      // Search for the certificate in the chain that signed this certificate. This is typically
-      // the next element in the chain, but it could be any element.
-      val i = queue.iterator()
-      while (i.hasNext()) {
-        val signingCert = i.next() as X509Certificate
-        if (verifySignature(toVerify, signingCert)) {
-          i.remove()
-          result.add(signingCert)
-          continue@followIssuerChain
-        }
+      throw SSLPeerUnverifiedException("Certificate chain too long: $result")
+   }
+
+   /** Returns true if [toVerify] was signed by [signingCert]'s public key. */
+   private fun verifySignature(toVerify: X509Certificate, signingCert: X509Certificate): Boolean {
+      if (toVerify.issuerDN != signingCert.subjectDN) {
+         return false
       }
-
-      // We've reached the end of the chain. If any cert in the chain is trusted, we're done.
-      if (foundTrustedCertificate) {
-        return result
+      return try {
+         toVerify.verify(signingCert.publicKey)
+         true
+      } catch (verifyFailed: GeneralSecurityException) {
+         false
       }
+   }
 
-      // The last link isn't trusted. Fail.
-      throw SSLPeerUnverifiedException(
-          "Failed to find a trusted cert that signed $toVerify")
-    }
+   override fun hashCode(): Int {
+      return trustRootIndex.hashCode()
+   }
 
-    throw SSLPeerUnverifiedException("Certificate chain too long: $result")
-  }
+   override fun equals(other: Any?): Boolean {
+      return if (other === this) {
+         true
+      } else {
+         other is BasicCertificateChainCleaner && other.trustRootIndex == trustRootIndex
+      }
+   }
 
-  /** Returns true if [toVerify] was signed by [signingCert]'s public key. */
-  private fun verifySignature(toVerify: X509Certificate, signingCert: X509Certificate): Boolean {
-    if (toVerify.issuerDN != signingCert.subjectDN) {
-      return false
-    }
-    return try {
-      toVerify.verify(signingCert.publicKey)
-      true
-    } catch (verifyFailed: GeneralSecurityException) {
-      false
-    }
-  }
-
-  override fun hashCode(): Int {
-    return trustRootIndex.hashCode()
-  }
-
-  override fun equals(other: Any?): Boolean {
-    return if (other === this) {
-      true
-    } else {
-      other is BasicCertificateChainCleaner && other.trustRootIndex == trustRootIndex
-    }
-  }
-
-  companion object {
-    private const val MAX_SIGNERS = 9
-  }
+   companion object {
+      private const val MAX_SIGNERS = 9
+   }
 }

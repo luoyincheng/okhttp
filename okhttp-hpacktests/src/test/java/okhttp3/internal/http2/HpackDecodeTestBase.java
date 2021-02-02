@@ -16,10 +16,10 @@
 package okhttp3.internal.http2;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+
 import okhttp3.internal.http2.hpackjson.Case;
 import okhttp3.internal.http2.hpackjson.HpackJsonUtil;
 import okhttp3.internal.http2.hpackjson.Story;
@@ -33,46 +33,46 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class HpackDecodeTestBase {
 
-  /**
-   * Reads all stories in the folders provided, asserts if no story found.
-   */
-  protected static List<Object> createStories(String[] interopTests)
-      throws Exception {
-    if (interopTests.length == 0) {
-      return Collections.singletonList(MISSING);
-    }
+	private final Buffer bytesIn = new Buffer();
+	private final Hpack.Reader hpackReader = new Hpack.Reader(bytesIn, 4096);
 
-    List<Object> result = new ArrayList<>();
-    for (String interopTestName : interopTests) {
-      List<Story> stories = HpackJsonUtil.readStories(interopTestName);
-      for (Story story : stories) {
-        result.add(story);
-      }
-    }
-    return result;
-  }
+	/**
+	 * Reads all stories in the folders provided, asserts if no story found.
+	 */
+	protected static List<Object> createStories(String[] interopTests)
+		throws Exception {
+		if (interopTests.length == 0) {
+			return Collections.singletonList(MISSING);
+		}
 
-  private final Buffer bytesIn = new Buffer();
-  private final Hpack.Reader hpackReader = new Hpack.Reader(bytesIn, 4096);
+		List<Object> result = new ArrayList<>();
+		for (String interopTestName : interopTests) {
+			List<Story> stories = HpackJsonUtil.readStories(interopTestName);
+			for (Story story : stories) {
+				result.add(story);
+			}
+		}
+		return result;
+	}
 
-  protected void testDecoder(Story story) throws Exception {
-    for (Case testCase : story.getCases()) {
-      bytesIn.write(testCase.getWire());
-      hpackReader.readHeaders();
-      assertSetEquals(String.format("seqno=%d", testCase.getSeqno()), testCase.getHeaders(),
-          hpackReader.getAndResetHeaderList());
-    }
-  }
+	/**
+	 * Checks if {@code expected} and {@code observed} are equal when viewed as a set and headers are
+	 * deduped.
+	 * <p>
+	 * TODO: See if duped headers should be preserved on decode and verify.
+	 */
+	private static void assertSetEquals(
+		String message, List<Header> expected, List<Header> observed) {
+		assertThat(new LinkedHashSet<>(observed)).overridingErrorMessage(message).isEqualTo(
+			new LinkedHashSet<>(expected));
+	}
 
-  /**
-   * Checks if {@code expected} and {@code observed} are equal when viewed as a set and headers are
-   * deduped.
-   *
-   * TODO: See if duped headers should be preserved on decode and verify.
-   */
-  private static void assertSetEquals(
-      String message, List<Header> expected, List<Header> observed) {
-    assertThat(new LinkedHashSet<>(observed)).overridingErrorMessage(message).isEqualTo(
-        new LinkedHashSet<>(expected));
-  }
+	protected void testDecoder(Story story) throws Exception {
+		for (Case testCase : story.getCases()) {
+			bytesIn.write(testCase.getWire());
+			hpackReader.readHeaders();
+			assertSetEquals(String.format("seqno=%d", testCase.getSeqno()), testCase.getHeaders(),
+				hpackReader.getAndResetHeaderList());
+		}
+	}
 }

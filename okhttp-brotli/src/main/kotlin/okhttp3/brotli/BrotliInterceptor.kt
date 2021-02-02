@@ -32,17 +32,17 @@ import org.brotli.dec.BrotliInputStream
  * responses.  n.b. this replaces the transparent gzip compression in BridgeInterceptor.
  */
 object BrotliInterceptor : Interceptor {
-  override fun intercept(chain: Interceptor.Chain): Response {
-    return if (chain.request().header("Accept-Encoding") == null) {
-      val request = chain.request().newBuilder()
-        .header("Accept-Encoding", "br,gzip")
-        .build()
+   override fun intercept(chain: Interceptor.Chain): Response {
+      return if (chain.request().header("Accept-Encoding") == null) {
+         val request = chain.request().newBuilder()
+            .header("Accept-Encoding", "br,gzip")
+            .build()
 
-      val response = chain.proceed(request)
+         val response = chain.proceed(request)
 
-      uncompress(response)
-    } else {
-      chain.proceed(chain.request())
-    }
-  }
+         uncompress(response)
+      } else {
+         chain.proceed(chain.request())
+      }
+   }
 }

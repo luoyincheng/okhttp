@@ -23,30 +23,33 @@ import org.junit.jupiter.api.extension.RegisterExtension
 import org.junit.jupiter.api.fail
 
 class OkHttpClientTestRuleTest {
-  lateinit var extensionContext: ExtensionContext
+   lateinit var extensionContext: ExtensionContext
 
-  @RegisterExtension @JvmField val beforeEachCallback = BeforeEachCallback { context ->
-    this@OkHttpClientTestRuleTest.extensionContext = context
-  }
+   @RegisterExtension
+   @JvmField
+   val beforeEachCallback = BeforeEachCallback { context ->
+      this@OkHttpClientTestRuleTest.extensionContext = context
+   }
 
-  @Test fun uncaughtException() {
-    val testRule = OkHttpClientTestRule()
-    testRule.beforeEach(extensionContext)
+   @Test
+   fun uncaughtException() {
+      val testRule = OkHttpClientTestRule()
+      testRule.beforeEach(extensionContext)
 
-    val thread = object : Thread() {
-      override fun run() {
-        throw RuntimeException("boom!")
+      val thread = object : Thread() {
+         override fun run() {
+            throw RuntimeException("boom!")
+         }
       }
-    }
-    thread.start()
-    thread.join()
+      thread.start()
+      thread.join()
 
-    try {
-      testRule.afterEach(extensionContext)
-      fail("")
-    } catch (expected: AssertionError) {
-      assertThat(expected).hasMessage("uncaught exception thrown during test")
-      assertThat(expected.cause).hasMessage("boom!")
-    }
-  }
+      try {
+         testRule.afterEach(extensionContext)
+         fail("")
+      } catch (expected: AssertionError) {
+         assertThat(expected).hasMessage("uncaught exception thrown during test")
+         assertThat(expected.cause).hasMessage("boom!")
+      }
+   }
 }

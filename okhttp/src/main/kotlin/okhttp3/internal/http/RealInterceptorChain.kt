@@ -34,89 +34,89 @@ import okhttp3.internal.connection.RealCall
  * a network interceptor and [exchange] must be non-null.
  */
 class RealInterceptorChain(
-  internal val call: RealCall,
-  private val interceptors: List<Interceptor>,
-  private val index: Int,
-  internal val exchange: Exchange?,
-  internal val request: Request,
-  internal val connectTimeoutMillis: Int,
-  internal val readTimeoutMillis: Int,
-  internal val writeTimeoutMillis: Int
+   internal val call: RealCall,
+   private val interceptors: List<Interceptor>,
+   private val index: Int,
+   internal val exchange: Exchange?,
+   internal val request: Request,
+   internal val connectTimeoutMillis: Int,
+   internal val readTimeoutMillis: Int,
+   internal val writeTimeoutMillis: Int
 ) : Interceptor.Chain {
 
-  private var calls: Int = 0
+   private var calls: Int = 0
 
-  internal fun copy(
-    index: Int = this.index,
-    exchange: Exchange? = this.exchange,
-    request: Request = this.request,
-    connectTimeoutMillis: Int = this.connectTimeoutMillis,
-    readTimeoutMillis: Int = this.readTimeoutMillis,
-    writeTimeoutMillis: Int = this.writeTimeoutMillis
-  ) = RealInterceptorChain(call, interceptors, index, exchange, request, connectTimeoutMillis,
+   internal fun copy(
+      index: Int = this.index,
+      exchange: Exchange? = this.exchange,
+      request: Request = this.request,
+      connectTimeoutMillis: Int = this.connectTimeoutMillis,
+      readTimeoutMillis: Int = this.readTimeoutMillis,
+      writeTimeoutMillis: Int = this.writeTimeoutMillis
+   ) = RealInterceptorChain(call, interceptors, index, exchange, request, connectTimeoutMillis,
       readTimeoutMillis, writeTimeoutMillis)
 
-  override fun connection(): Connection? = exchange?.connection
+   override fun connection(): Connection? = exchange?.connection
 
-  override fun connectTimeoutMillis(): Int = connectTimeoutMillis
+   override fun connectTimeoutMillis(): Int = connectTimeoutMillis
 
-  override fun withConnectTimeout(timeout: Int, unit: TimeUnit): Interceptor.Chain {
-    check(exchange == null) { "Timeouts can't be adjusted in a network interceptor" }
+   override fun withConnectTimeout(timeout: Int, unit: TimeUnit): Interceptor.Chain {
+      check(exchange == null) { "Timeouts can't be adjusted in a network interceptor" }
 
-    return copy(connectTimeoutMillis = checkDuration("connectTimeout", timeout.toLong(), unit))
-  }
+      return copy(connectTimeoutMillis = checkDuration("connectTimeout", timeout.toLong(), unit))
+   }
 
-  override fun readTimeoutMillis(): Int = readTimeoutMillis
+   override fun readTimeoutMillis(): Int = readTimeoutMillis
 
-  override fun withReadTimeout(timeout: Int, unit: TimeUnit): Interceptor.Chain {
-    check(exchange == null) { "Timeouts can't be adjusted in a network interceptor" }
+   override fun withReadTimeout(timeout: Int, unit: TimeUnit): Interceptor.Chain {
+      check(exchange == null) { "Timeouts can't be adjusted in a network interceptor" }
 
-    return copy(readTimeoutMillis = checkDuration("readTimeout", timeout.toLong(), unit))
-  }
+      return copy(readTimeoutMillis = checkDuration("readTimeout", timeout.toLong(), unit))
+   }
 
-  override fun writeTimeoutMillis(): Int = writeTimeoutMillis
+   override fun writeTimeoutMillis(): Int = writeTimeoutMillis
 
-  override fun withWriteTimeout(timeout: Int, unit: TimeUnit): Interceptor.Chain {
-    check(exchange == null) { "Timeouts can't be adjusted in a network interceptor" }
+   override fun withWriteTimeout(timeout: Int, unit: TimeUnit): Interceptor.Chain {
+      check(exchange == null) { "Timeouts can't be adjusted in a network interceptor" }
 
-    return copy(writeTimeoutMillis = checkDuration("writeTimeout", timeout.toLong(), unit))
-  }
+      return copy(writeTimeoutMillis = checkDuration("writeTimeout", timeout.toLong(), unit))
+   }
 
-  override fun call(): Call = call
+   override fun call(): Call = call
 
-  override fun request(): Request = request
+   override fun request(): Request = request
 
-  @Throws(IOException::class)
-  override fun proceed(request: Request): Response {
-    check(index < interceptors.size)
+   @Throws(IOException::class)
+   override fun proceed(request: Request): Response {
+      check(index < interceptors.size)
 
-    calls++
+      calls++
 
-    if (exchange != null) {
-      check(exchange.finder.sameHostAndPort(request.url)) {
-        "network interceptor ${interceptors[index - 1]} must retain the same host and port"
+      if (exchange != null) {
+         check(exchange.finder.sameHostAndPort(request.url)) {
+            "network interceptor ${interceptors[index - 1]} must retain the same host and port"
+         }
+         check(calls == 1) {
+            "network interceptor ${interceptors[index - 1]} must call proceed() exactly once"
+         }
       }
-      check(calls == 1) {
-        "network interceptor ${interceptors[index - 1]} must call proceed() exactly once"
+
+      // Call the next interceptor in the chain.
+      val next = copy(index = index + 1, request = request)
+      val interceptor = interceptors[index]
+
+      @Suppress("USELESS_ELVIS")
+      val response = interceptor.intercept(next) ?: throw NullPointerException(
+         "interceptor $interceptor returned null")
+
+      if (exchange != null) {
+         check(index + 1 >= interceptors.size || next.calls == 1) {
+            "network interceptor $interceptor must call proceed() exactly once"
+         }
       }
-    }
 
-    // Call the next interceptor in the chain.
-    val next = copy(index = index + 1, request = request)
-    val interceptor = interceptors[index]
+      check(response.body != null) { "interceptor $interceptor returned a response with no body" }
 
-    @Suppress("USELESS_ELVIS")
-    val response = interceptor.intercept(next) ?: throw NullPointerException(
-        "interceptor $interceptor returned null")
-
-    if (exchange != null) {
-      check(index + 1 >= interceptors.size || next.calls == 1) {
-        "network interceptor $interceptor must call proceed() exactly once"
-      }
-    }
-
-    check(response.body != null) { "interceptor $interceptor returned a response with no body" }
-
-    return response
-  }
+      return response
+   }
 }

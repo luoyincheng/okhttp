@@ -19,6 +19,7 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
 import okhttp3.internal.Util;
 import okio.Buffer;
 import okio.BufferedSource;
@@ -35,123 +36,124 @@ import okio.BufferedSource;
  * }</pre>
  */
 public final class WebPlatformUrlTestData {
-  String input;
-  String base;
-  String scheme = "";
-  String username = "";
-  String password = null;
-  String host = "";
-  String port = "";
-  String path = "";
-  String query = "";
-  String fragment = "";
+	String input;
+	String base;
+	String scheme = "";
+	String username = "";
+	String password = null;
+	String host = "";
+	String port = "";
+	String path = "";
+	String query = "";
+	String fragment = "";
 
-  public boolean expectParseFailure() {
-    return scheme.isEmpty();
-  }
+	public static List<WebPlatformUrlTestData> load(BufferedSource source) throws IOException {
+		List<WebPlatformUrlTestData> list = new ArrayList<>();
+		for (String line; (line = source.readUtf8Line()) != null; ) {
+			if (line.isEmpty() || line.startsWith("#")) continue;
 
-  private void set(String name, String value) {
-    switch (name) {
-      case "s":
-        scheme = value;
-        break;
-      case "u":
-        username = value;
-        break;
-      case "pass":
-        password = value;
-        break;
-      case "h":
-        host = value;
-        break;
-      case "port":
-        port = value;
-        break;
-      case "p":
-        path = value;
-        break;
-      case "q":
-        query = value;
-        break;
-      case "f":
-        fragment = value;
-        break;
-      default:
-        throw new IllegalArgumentException("unexpected attribute: " + value);
-    }
-  }
+			int i = 0;
+			String[] parts = line.split(" ");
+			WebPlatformUrlTestData element = new WebPlatformUrlTestData();
+			element.input = unescape(parts[i++]);
 
-  @Override public String toString() {
-    return Util.format("Parsing: <%s> against <%s>", input, base);
-  }
+			String base = i < parts.length ? parts[i++] : null;
+			element.base = (base == null || base.isEmpty())
+				? list.get(list.size() - 1).base
+				: unescape(base);
 
-  public static List<WebPlatformUrlTestData> load(BufferedSource source) throws IOException {
-    List<WebPlatformUrlTestData> list = new ArrayList<>();
-    for (String line; (line = source.readUtf8Line()) != null; ) {
-      if (line.isEmpty() || line.startsWith("#")) continue;
+			for (; i < parts.length; i++) {
+				String piece = parts[i];
+				if (piece.startsWith("#")) continue;
+				String[] nameAndValue = piece.split(":", 2);
+				element.set(nameAndValue[0], unescape(nameAndValue[1]));
+			}
 
-      int i = 0;
-      String[] parts = line.split(" ");
-      WebPlatformUrlTestData element = new WebPlatformUrlTestData();
-      element.input = unescape(parts[i++]);
+			list.add(element);
+		}
+		return list;
+	}
 
-      String base = i < parts.length ? parts[i++] : null;
-      element.base = (base == null || base.isEmpty())
-          ? list.get(list.size() - 1).base
-          : unescape(base);
+	private static String unescape(String s) throws EOFException {
+		Buffer in = new Buffer().writeUtf8(s);
+		StringBuilder result = new StringBuilder();
+		while (!in.exhausted()) {
+			int c = in.readUtf8CodePoint();
+			if (c != '\\') {
+				result.append((char) c);
+				continue;
+			}
 
-      for (; i < parts.length; i++) {
-        String piece = parts[i];
-        if (piece.startsWith("#")) continue;
-        String[] nameAndValue = piece.split(":", 2);
-        element.set(nameAndValue[0], unescape(nameAndValue[1]));
-      }
+			switch (in.readUtf8CodePoint()) {
+				case '\\':
+					result.append('\\');
+					break;
+				case '#':
+					result.append('#');
+					break;
+				case 'n':
+					result.append('\n');
+					break;
+				case 'r':
+					result.append('\r');
+					break;
+				case 's':
+					result.append(' ');
+					break;
+				case 't':
+					result.append('\t');
+					break;
+				case 'f':
+					result.append('\f');
+					break;
+				case 'u':
+					result.append((char) Integer.parseInt(in.readUtf8(4), 16));
+					break;
+				default:
+					throw new IllegalArgumentException("unexpected escape character in " + s);
+			}
+		}
 
-      list.add(element);
-    }
-    return list;
-  }
+		return result.toString();
+	}
 
-  private static String unescape(String s) throws EOFException {
-    Buffer in = new Buffer().writeUtf8(s);
-    StringBuilder result = new StringBuilder();
-    while (!in.exhausted()) {
-      int c = in.readUtf8CodePoint();
-      if (c != '\\') {
-        result.append((char) c);
-        continue;
-      }
+	public boolean expectParseFailure() {
+		return scheme.isEmpty();
+	}
 
-      switch (in.readUtf8CodePoint()) {
-        case '\\':
-          result.append('\\');
-          break;
-        case '#':
-          result.append('#');
-          break;
-        case 'n':
-          result.append('\n');
-          break;
-        case 'r':
-          result.append('\r');
-          break;
-        case 's':
-          result.append(' ');
-          break;
-        case 't':
-          result.append('\t');
-          break;
-        case 'f':
-          result.append('\f');
-          break;
-        case 'u':
-          result.append((char) Integer.parseInt(in.readUtf8(4), 16));
-          break;
-        default:
-          throw new IllegalArgumentException("unexpected escape character in " + s);
-      }
-    }
+	private void set(String name, String value) {
+		switch (name) {
+			case "s":
+				scheme = value;
+				break;
+			case "u":
+				username = value;
+				break;
+			case "pass":
+				password = value;
+				break;
+			case "h":
+				host = value;
+				break;
+			case "port":
+				port = value;
+				break;
+			case "p":
+				path = value;
+				break;
+			case "q":
+				query = value;
+				break;
+			case "f":
+				fragment = value;
+				break;
+			default:
+				throw new IllegalArgumentException("unexpected attribute: " + value);
+		}
+	}
 
-    return result.toString();
-  }
+	@Override
+	public String toString() {
+		return Util.format("Parsing: <%s> against <%s>", input, base);
+	}
 }

@@ -25,42 +25,42 @@ import okhttp3.tls.HandshakeCertificates
 import okhttp3.tls.internal.TlsUtil
 
 class DevServer {
-  val handshakeCertificates = TlsUtil.localhost()
+   val handshakeCertificates = TlsUtil.localhost()
 
-  val server = MockWebServer().apply {
-    useHttps(handshakeCertificates.sslSocketFactory(), false)
+   val server = MockWebServer().apply {
+      useHttps(handshakeCertificates.sslSocketFactory(), false)
 
-    enqueue(MockResponse()
-        .setResponseCode(HTTP_MOVED_TEMP)
-        .setHeader("Location", "https://www.google.com/robots.txt"))
-  }
+      enqueue(MockResponse()
+         .setResponseCode(HTTP_MOVED_TEMP)
+         .setHeader("Location", "https://www.google.com/robots.txt"))
+   }
 
-  val clientCertificates = HandshakeCertificates.Builder()
+   val clientCertificates = HandshakeCertificates.Builder()
       .addPlatformTrustedCertificates()
       .addInsecureHost(server.hostName)
       .build()
 
-  val client = OkHttpClient.Builder()
+   val client = OkHttpClient.Builder()
       .sslSocketFactory(clientCertificates.sslSocketFactory(), clientCertificates.trustManager)
       .build()
 
-  fun run() {
-    try {
-      val request = Request.Builder()
-          .url(server.url("/"))
-          .build()
+   fun run() {
+      try {
+         val request = Request.Builder()
+            .url(server.url("/"))
+            .build()
 
-      client.newCall(request).execute().use { response ->
-        if (!response.isSuccessful) throw IOException("Unexpected code $response")
+         client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) throw IOException("Unexpected code $response")
 
-        println(response.request.url)
+            println(response.request.url)
+         }
+      } finally {
+         server.shutdown()
       }
-    } finally {
-      server.shutdown()
-    }
-  }
+   }
 }
 
 fun main() {
-  DevServer().run()
+   DevServer().run()
 }

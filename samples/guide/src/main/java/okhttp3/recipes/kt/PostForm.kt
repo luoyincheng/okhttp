@@ -21,25 +21,25 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 
 class PostForm {
-  private val client = OkHttpClient()
+   private val client = OkHttpClient()
 
-  fun run() {
-    val formBody = FormBody.Builder()
-        .add("search", "Jurassic Park")
-        .build()
-    val request = Request.Builder()
-        .url("https://en.wikipedia.org/w/index.php")
-        .post(formBody)
-        .build()
+   fun run() {
+      val formBody = FormBody.Builder()
+         .add("search", "Jurassic Park")
+         .build()
+      val request = Request.Builder()
+         .url("https://en.wikipedia.org/w/index.php")
+         .post(formBody)
+         .build()
 
-    client.newCall(request).execute().use { response ->
-      if (!response.isSuccessful) throw IOException("Unexpected code $response")
+      client.newCall(request).execute().use { response ->
+         if (!response.isSuccessful) throw IOException("Unexpected code $response")
 
-      println(response.body!!.string())
-    }
-  }
+         println(response.body!!.string())
+      }
+   }
 }
 
 fun main() {
-  PostForm().run()
+   PostForm().run()
 }

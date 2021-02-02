@@ -22,22 +22,22 @@ import java.net.SocketAddress
 import java.net.URI
 
 class FakeProxySelector : ProxySelector() {
-  val proxies: MutableList<Proxy> = mutableListOf()
+   val proxies: MutableList<Proxy> = mutableListOf()
 
-  fun addProxy(proxy: Proxy): FakeProxySelector {
-    proxies.add(proxy)
-    return this
-  }
+   fun addProxy(proxy: Proxy): FakeProxySelector {
+      proxies.add(proxy)
+      return this
+   }
 
-  override fun select(uri: URI): List<Proxy> {
-    // Don't handle 'socket' schemes, which the RI's Socket class may request (for SOCKS).
-    return if (uri.scheme == "http" || uri.scheme == "https") proxies else listOf(Proxy.NO_PROXY)
-  }
+   override fun select(uri: URI): List<Proxy> {
+      // Don't handle 'socket' schemes, which the RI's Socket class may request (for SOCKS).
+      return if (uri.scheme == "http" || uri.scheme == "https") proxies else listOf(Proxy.NO_PROXY)
+   }
 
-  override fun connectFailed(
-    uri: URI,
-    sa: SocketAddress,
-    ioe: IOException
-  ) {
-  }
+   override fun connectFailed(
+      uri: URI,
+      sa: SocketAddress,
+      ioe: IOException
+   ) {
+   }
 }

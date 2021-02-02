@@ -24,47 +24,53 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.RegisterExtension
 
 class CorrettoTest {
-  @JvmField @RegisterExtension val platform = PlatformRule.conscrypt()
-  @JvmField @RegisterExtension val clientTestRule = OkHttpClientTestRule()
+   @JvmField
+   @RegisterExtension
+   val platform = PlatformRule.conscrypt()
 
-  private val client = clientTestRule.newClient()
+   @JvmField
+   @RegisterExtension
+   val clientTestRule = OkHttpClientTestRule()
 
-  @BeforeEach fun setUp() {
-    platform.assumeCorretto()
-  }
+   private val client = clientTestRule.newClient()
 
-  @Test
-  @Disabled
-  fun testMozilla() {
-    assumeNetwork()
+   @BeforeEach
+   fun setUp() {
+      platform.assumeCorretto()
+   }
 
-    val request = Request.Builder().url("https://mozilla.org/robots.txt").build()
+   @Test
+   @Disabled
+   fun testMozilla() {
+      assumeNetwork()
 
-    client.newCall(request).execute().use {
-      assertThat(it.protocol).isEqualTo(Protocol.HTTP_2)
-      assertThat(it.handshake!!.tlsVersion).isEqualTo(TlsVersion.TLS_1_3)
-    }
-  }
+      val request = Request.Builder().url("https://mozilla.org/robots.txt").build()
 
-  @Test
-  @Disabled
-  fun testGoogle() {
-    assumeNetwork()
-
-    val request = Request.Builder().url("https://google.com/robots.txt").build()
-
-    client.newCall(request).execute().use {
-      assertThat(it.protocol).isEqualTo(Protocol.HTTP_2)
-      if (it.handshake!!.tlsVersion != TlsVersion.TLS_1_3) {
-        System.err.println("Flaky TLSv1.3 with google")
-//    assertThat(it.handshake()!!.tlsVersion).isEqualTo(TlsVersion.TLS_1_3)
+      client.newCall(request).execute().use {
+         assertThat(it.protocol).isEqualTo(Protocol.HTTP_2)
+         assertThat(it.handshake!!.tlsVersion).isEqualTo(TlsVersion.TLS_1_3)
       }
-    }
-  }
+   }
 
-  @Test
-  fun testIfSupported() {
-    assertThat(PlatformRule.isCorrettoSupported).isTrue()
-    assertThat(PlatformRule.isCorrettoInstalled).isTrue()
-  }
+   @Test
+   @Disabled
+   fun testGoogle() {
+      assumeNetwork()
+
+      val request = Request.Builder().url("https://google.com/robots.txt").build()
+
+      client.newCall(request).execute().use {
+         assertThat(it.protocol).isEqualTo(Protocol.HTTP_2)
+         if (it.handshake!!.tlsVersion != TlsVersion.TLS_1_3) {
+            System.err.println("Flaky TLSv1.3 with google")
+//    assertThat(it.handshake()!!.tlsVersion).isEqualTo(TlsVersion.TLS_1_3)
+         }
+      }
+   }
+
+   @Test
+   fun testIfSupported() {
+      assertThat(PlatformRule.isCorrettoSupported).isTrue()
+      assertThat(PlatformRule.isCorrettoInstalled).isTrue()
+   }
 }

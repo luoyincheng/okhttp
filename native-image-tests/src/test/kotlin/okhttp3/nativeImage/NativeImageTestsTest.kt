@@ -25,34 +25,34 @@ import org.junit.jupiter.engine.descriptor.ClassBasedTestDescriptor
 import org.junit.platform.engine.discovery.DiscoverySelectors
 
 class NativeImageTestsTest {
-  @Test
-  fun testFindsFixedTestsForImage() {
-    val testSelector = testSelectors()
-    val x = findTests(testSelector)
+   @Test
+   fun testFindsFixedTestsForImage() {
+      val testSelector = testSelectors()
+      val x = findTests(testSelector)
 
-    x.find { it is ClassBasedTestDescriptor && it.testClass == SampleTest::class.java }
-  }
+      x.find { it is ClassBasedTestDescriptor && it.testClass == SampleTest::class.java }
+   }
 
-  @Test
-  fun testFindsModuleTests() {
-    val testSelector = DiscoverySelectors.selectPackage("okhttp3")
-    val x = findTests(listOf(testSelector))
+   @Test
+   fun testFindsModuleTests() {
+      val testSelector = DiscoverySelectors.selectPackage("okhttp3")
+      val x = findTests(listOf(testSelector))
 
-    x.find { it is ClassBasedTestDescriptor && it.testClass == SampleTest::class.java }
-  }
+      x.find { it is ClassBasedTestDescriptor && it.testClass == SampleTest::class.java }
+   }
 
-  @Test
-  fun testFindsProjectTests() {
-    val testSelector = DiscoverySelectors.selectPackage("okhttp3")
-    val x = findTests(listOf(testSelector))
+   @Test
+   fun testFindsProjectTests() {
+      val testSelector = DiscoverySelectors.selectPackage("okhttp3")
+      val x = findTests(listOf(testSelector))
 
-    x.find { it is ClassBasedTestDescriptor && it.testClass == SampleTest::class.java }
-  }
+      x.find { it is ClassBasedTestDescriptor && it.testClass == SampleTest::class.java }
+   }
 
-  @Test
-  fun testTreeListener() {
-    val listener = treeListener()
+   @Test
+   fun testTreeListener() {
+      val listener = treeListener()
 
-    assertNotNull(listener)
-  }
+      assertNotNull(listener)
+   }
 }

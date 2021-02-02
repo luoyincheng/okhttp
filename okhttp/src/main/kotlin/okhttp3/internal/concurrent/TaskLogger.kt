@@ -18,46 +18,46 @@ package okhttp3.internal.concurrent
 import java.util.logging.Level
 
 internal inline fun taskLog(
-  task: Task,
-  queue: TaskQueue,
-  messageBlock: () -> String
+   task: Task,
+   queue: TaskQueue,
+   messageBlock: () -> String
 ) {
-  if (TaskRunner.logger.isLoggable(Level.FINE)) {
-    log(task, queue, messageBlock())
-  }
+   if (TaskRunner.logger.isLoggable(Level.FINE)) {
+      log(task, queue, messageBlock())
+   }
 }
 
 internal inline fun <T> logElapsed(
-  task: Task,
-  queue: TaskQueue,
-  block: () -> T
+   task: Task,
+   queue: TaskQueue,
+   block: () -> T
 ): T {
-  var startNs = -1L
-  val loggingEnabled = TaskRunner.logger.isLoggable(Level.FINE)
-  if (loggingEnabled) {
-    startNs = queue.taskRunner.backend.nanoTime()
-    log(task, queue, "starting")
-  }
+   var startNs = -1L
+   val loggingEnabled = TaskRunner.logger.isLoggable(Level.FINE)
+   if (loggingEnabled) {
+      startNs = queue.taskRunner.backend.nanoTime()
+      log(task, queue, "starting")
+   }
 
-  var completedNormally = false
-  try {
-    val result = block()
-    completedNormally = true
-    return result
-  } finally {
-    if (loggingEnabled) {
-      val elapsedNs = queue.taskRunner.backend.nanoTime() - startNs
-      if (completedNormally) {
-        log(task, queue, "finished run in ${formatDuration(elapsedNs)}")
-      } else {
-        log(task, queue, "failed a run in ${formatDuration(elapsedNs)}")
+   var completedNormally = false
+   try {
+      val result = block()
+      completedNormally = true
+      return result
+   } finally {
+      if (loggingEnabled) {
+         val elapsedNs = queue.taskRunner.backend.nanoTime() - startNs
+         if (completedNormally) {
+            log(task, queue, "finished run in ${formatDuration(elapsedNs)}")
+         } else {
+            log(task, queue, "failed a run in ${formatDuration(elapsedNs)}")
+         }
       }
-    }
-  }
+   }
 }
 
 private fun log(task: Task, queue: TaskQueue, message: String) {
-  TaskRunner.logger.fine("${queue.name} ${String.format("%-22s", message)}: ${task.name}")
+   TaskRunner.logger.fine("${queue.name} ${String.format("%-22s", message)}: ${task.name}")
 }
 
 /**
@@ -69,13 +69,13 @@ private fun log(task: Task, queue: TaskQueue, message: String) {
  * the returned string may be longer.
  */
 fun formatDuration(ns: Long): String {
-  val s = when {
-    ns <= -999_500_000 -> "${(ns - 500_000_000) / 1_000_000_000} s "
-    ns <= -999_500 -> "${(ns - 500_000) / 1_000_000} ms"
-    ns <= 0 -> "${(ns - 500) / 1_000} µs"
-    ns < 999_500 -> "${(ns + 500) / 1_000} µs"
-    ns < 999_500_000 -> "${(ns + 500_000) / 1_000_000} ms"
-    else -> "${(ns + 500_000_000) / 1_000_000_000} s "
-  }
-  return String.format("%6s", s)
+   val s = when {
+      ns <= -999_500_000 -> "${(ns - 500_000_000) / 1_000_000_000} s "
+      ns <= -999_500 -> "${(ns - 500_000) / 1_000_000} ms"
+      ns <= 0 -> "${(ns - 500) / 1_000} µs"
+      ns < 999_500 -> "${(ns + 500) / 1_000} µs"
+      ns < 999_500_000 -> "${(ns + 500_000) / 1_000_000} ms"
+      else -> "${(ns + 500_000_000) / 1_000_000_000} s "
+   }
+   return String.format("%6s", s)
 }

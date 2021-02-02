@@ -15,29 +15,31 @@
  */
 package okhttp3.internal.platform;
 
-import okhttp3.testing.PlatformRule;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
+
+import okhttp3.testing.PlatformRule;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
 public class Jdk8WithJettyBootPlatformTest {
-  @RegisterExtension public final PlatformRule platform = new PlatformRule();
+	@RegisterExtension
+	public final PlatformRule platform = new PlatformRule();
 
-  @Test
-  public void testBuildsWithJettyBoot() {
-    assumeTrue(System.getProperty("java.specification.version").equals("1.8"));
-    platform.assumeJettyBootEnabled();
+	@Test
+	public void testBuildsWithJettyBoot() {
+		assumeTrue(System.getProperty("java.specification.version").equals("1.8"));
+		platform.assumeJettyBootEnabled();
 
-    assertThat(Jdk8WithJettyBootPlatform.Companion.buildIfSupported()).isNotNull();
-  }
+		assertThat(Jdk8WithJettyBootPlatform.Companion.buildIfSupported()).isNotNull();
+	}
 
-  @Test
-  public void testNotBuildWithOther() {
-    assumeFalse(System.getProperty("java.specification.version").equals("1.8"));
+	@Test
+	public void testNotBuildWithOther() {
+		assumeFalse(System.getProperty("java.specification.version").equals("1.8"));
 
-    assertThat(Jdk8WithJettyBootPlatform.Companion.buildIfSupported()).isNull();
-  }
+		assertThat(Jdk8WithJettyBootPlatform.Companion.buildIfSupported()).isNull();
+	}
 }

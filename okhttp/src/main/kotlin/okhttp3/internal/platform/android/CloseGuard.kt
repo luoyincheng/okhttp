@@ -23,53 +23,53 @@ import java.lang.reflect.Method
  * Android API 11.
  */
 internal class CloseGuard(
-  private val getMethod: Method?,
-  private val openMethod: Method?,
-  private val warnIfOpenMethod: Method?
+   private val getMethod: Method?,
+   private val openMethod: Method?,
+   private val warnIfOpenMethod: Method?
 ) {
 
-  fun createAndOpen(closer: String): Any? {
-    if (getMethod != null) {
-      try {
-        val closeGuardInstance = getMethod.invoke(null)
-        openMethod!!.invoke(closeGuardInstance, closer)
-        return closeGuardInstance
-      } catch (_: Exception) {
+   fun createAndOpen(closer: String): Any? {
+      if (getMethod != null) {
+         try {
+            val closeGuardInstance = getMethod.invoke(null)
+            openMethod!!.invoke(closeGuardInstance, closer)
+            return closeGuardInstance
+         } catch (_: Exception) {
+         }
       }
-    }
-    return null
-  }
+      return null
+   }
 
-  fun warnIfOpen(closeGuardInstance: Any?): Boolean {
-    var reported = false
-    if (closeGuardInstance != null) {
-      try {
-        warnIfOpenMethod!!.invoke(closeGuardInstance)
-        reported = true
-      } catch (_: Exception) {
+   fun warnIfOpen(closeGuardInstance: Any?): Boolean {
+      var reported = false
+      if (closeGuardInstance != null) {
+         try {
+            warnIfOpenMethod!!.invoke(closeGuardInstance)
+            reported = true
+         } catch (_: Exception) {
+         }
       }
-    }
-    return reported
-  }
+      return reported
+   }
 
-  companion object {
-    fun get(): CloseGuard {
-      var getMethod: Method?
-      var openMethod: Method?
-      var warnIfOpenMethod: Method?
+   companion object {
+      fun get(): CloseGuard {
+         var getMethod: Method?
+         var openMethod: Method?
+         var warnIfOpenMethod: Method?
 
-      try {
-        val closeGuardClass = Class.forName("dalvik.system.CloseGuard")
-        getMethod = closeGuardClass.getMethod("get")
-        openMethod = closeGuardClass.getMethod("open", String::class.java)
-        warnIfOpenMethod = closeGuardClass.getMethod("warnIfOpen")
-      } catch (_: Exception) {
-        getMethod = null
-        openMethod = null
-        warnIfOpenMethod = null
+         try {
+            val closeGuardClass = Class.forName("dalvik.system.CloseGuard")
+            getMethod = closeGuardClass.getMethod("get")
+            openMethod = closeGuardClass.getMethod("open", String::class.java)
+            warnIfOpenMethod = closeGuardClass.getMethod("warnIfOpen")
+         } catch (_: Exception) {
+            getMethod = null
+            openMethod = null
+            warnIfOpenMethod = null
+         }
+
+         return CloseGuard(getMethod, openMethod, warnIfOpenMethod)
       }
-
-      return CloseGuard(getMethod, openMethod, warnIfOpenMethod)
-    }
-  }
+   }
 }

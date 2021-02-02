@@ -21,16 +21,16 @@ import javax.net.ssl.X509TrustManager
 import okhttp3.Protocol
 
 interface SocketAdapter {
-  fun isSupported(): Boolean
-  fun trustManager(sslSocketFactory: SSLSocketFactory): X509TrustManager? = null
-  fun matchesSocket(sslSocket: SSLSocket): Boolean
-  fun matchesSocketFactory(sslSocketFactory: SSLSocketFactory): Boolean = false
+   fun isSupported(): Boolean
+   fun trustManager(sslSocketFactory: SSLSocketFactory): X509TrustManager? = null
+   fun matchesSocket(sslSocket: SSLSocket): Boolean
+   fun matchesSocketFactory(sslSocketFactory: SSLSocketFactory): Boolean = false
 
-  fun configureTlsExtensions(
-    sslSocket: SSLSocket,
-    hostname: String?,
-    protocols: List<Protocol>
-  )
+   fun configureTlsExtensions(
+      sslSocket: SSLSocket,
+      hostname: String?,
+      protocols: List<Protocol>
+   )
 
-  fun getSelectedProtocol(sslSocket: SSLSocket): String?
+   fun getSelectedProtocol(sslSocket: SSLSocket): String?
 }

@@ -23,11 +23,11 @@ import okhttp3.tls.HandshakeCertificates
 import okhttp3.tls.decodeCertificatePem
 
 class CustomTrust {
-  // PEM files for root certificates of Comodo and Entrust. These two CAs are sufficient to view
-  // https://publicobject.com (Comodo) and https://squareup.com (Entrust). But they aren't
-  // sufficient to connect to most HTTPS sites including https://godaddy.com and https://visa.com.
-  // Typically developers will need to get a PEM file from their organization's TLS administrator.
-  val comodoRsaCertificationAuthority = """
+   // PEM files for root certificates of Comodo and Entrust. These two CAs are sufficient to view
+   // https://publicobject.com (Comodo) and https://squareup.com (Entrust). But they aren't
+   // sufficient to connect to most HTTPS sites including https://godaddy.com and https://visa.com.
+   // Typically developers will need to get a PEM file from their organization's TLS administrator.
+   val comodoRsaCertificationAuthority = """
     -----BEGIN CERTIFICATE-----
     MIIF2DCCA8CgAwIBAgIQTKr5yttjb+Af907YWwOGnTANBgkqhkiG9w0BAQwFADCB
     hTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3RlcjEQMA4G
@@ -64,8 +64,8 @@ class CustomTrust {
     -----END CERTIFICATE-----
     """.trimIndent().decodeCertificatePem()
 
-  // CN=Entrust Root Certification Authority, OU="(c) 2006 Entrust, Inc.", OU=www.entrust.net/CPS is incorporated by reference, O="Entrust, Inc.", C=US
-  val entrustRootCertificateAuthority = """
+   // CN=Entrust Root Certification Authority, OU="(c) 2006 Entrust, Inc.", OU=www.entrust.net/CPS is incorporated by reference, O="Entrust, Inc.", C=US
+   val entrustRootCertificateAuthority = """
     -----BEGIN CERTIFICATE-----
     MIIEkTCCA3mgAwIBAgIERWtQVDANBgkqhkiG9w0BAQUFADCBsDELMAkGA1UEBhMC
     VVMxFjAUBgNVBAoTDUVudHJ1c3QsIEluYy4xOTA3BgNVBAsTMHd3dy5lbnRydXN0
@@ -95,8 +95,8 @@ class CustomTrust {
     -----END CERTIFICATE-----
     """.trimIndent().decodeCertificatePem()
 
-  // CN=Let's Encrypt Authority X3, O=Let's Encrypt, C=US
-  val letsEncryptCertificateAuthority = """
+   // CN=Let's Encrypt Authority X3, O=Let's Encrypt, C=US
+   val letsEncryptCertificateAuthority = """
     -----BEGIN CERTIFICATE-----
     MIIEkjCCA3qgAwIBAgIQCgFBQgAAAVOFc2oLheynCDANBgkqhkiG9w0BAQsFADA/
     MSQwIgYDVQQKExtEaWdpdGFsIFNpZ25hdHVyZSBUcnVzdCBDby4xFzAVBgNVBAMT
@@ -126,50 +126,50 @@ class CustomTrust {
     -----END CERTIFICATE-----
     """.trimIndent().decodeCertificatePem()
 
-  private val client: OkHttpClient
+   private val client: OkHttpClient
 
-  init {
-    // This implementation just embeds the PEM files in Java strings; most applications will
-    // instead read this from a resource file that gets bundled with the application.
-    val certificates =
-      HandshakeCertificates.Builder()
-          .addTrustedCertificate(letsEncryptCertificateAuthority)
-          .addTrustedCertificate(entrustRootCertificateAuthority)
-          .addTrustedCertificate(comodoRsaCertificationAuthority)
-          // Uncomment if standard certificates are also required.
-          // .addPlatformTrustedCertificates()
-          .build()
-    client = OkHttpClient.Builder()
-        .sslSocketFactory(certificates.sslSocketFactory(), certificates.trustManager)
-        .build()
-  }
+   init {
+      // This implementation just embeds the PEM files in Java strings; most applications will
+      // instead read this from a resource file that gets bundled with the application.
+      val certificates =
+         HandshakeCertificates.Builder()
+            .addTrustedCertificate(letsEncryptCertificateAuthority)
+            .addTrustedCertificate(entrustRootCertificateAuthority)
+            .addTrustedCertificate(comodoRsaCertificationAuthority)
+            // Uncomment if standard certificates are also required.
+            // .addPlatformTrustedCertificates()
+            .build()
+      client = OkHttpClient.Builder()
+         .sslSocketFactory(certificates.sslSocketFactory(), certificates.trustManager)
+         .build()
+   }
 
-  fun run() {
-    showUrl("https://squareup.com/robots.txt")
-    showUrl("https://publicobject.com/helloworld.txt")
-  }
+   fun run() {
+      showUrl("https://squareup.com/robots.txt")
+      showUrl("https://publicobject.com/helloworld.txt")
+   }
 
-  private fun showUrl(url: String) {
-    val request = Builder().url(url).build()
-    client.newCall(request)
-        .execute()
-        .use { response ->
-          if (!response.isSuccessful) {
-            val responseHeaders = response.headers
-            for (i in 0 until responseHeaders.size) {
-              println(responseHeaders.name(i) + ": " + responseHeaders.value(i))
+   private fun showUrl(url: String) {
+      val request = Builder().url(url).build()
+      client.newCall(request)
+         .execute()
+         .use { response ->
+            if (!response.isSuccessful) {
+               val responseHeaders = response.headers
+               for (i in 0 until responseHeaders.size) {
+                  println(responseHeaders.name(i) + ": " + responseHeaders.value(i))
+               }
+               throw IOException("Unexpected code $response")
             }
-            throw IOException("Unexpected code $response")
-          }
-          println(response.body!!.string())
+            println(response.body!!.string())
 
-          for (peerCertificate in response.handshake?.peerCertificates.orEmpty()) {
-            println((peerCertificate as X509Certificate).subjectDN)
-          }
-        }
-  }
+            for (peerCertificate in response.handshake?.peerCertificates.orEmpty()) {
+               println((peerCertificate as X509Certificate).subjectDN)
+            }
+         }
+   }
 }
 
 fun main() {
-  CustomTrust().run()
+   CustomTrust().run()
 }

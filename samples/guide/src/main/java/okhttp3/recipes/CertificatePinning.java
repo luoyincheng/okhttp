@@ -17,34 +17,35 @@ package okhttp3.recipes;
 
 import java.io.IOException;
 import java.security.cert.Certificate;
+
 import okhttp3.CertificatePinner;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
 public final class CertificatePinning {
-  private final OkHttpClient client = new OkHttpClient.Builder()
-      .certificatePinner(
-          new CertificatePinner.Builder()
-              .add("publicobject.com", "sha256/Vjs8r4z+80wjNcr1YKepWQboSIRi63WsWXhIMN+eWys=")
-              .build())
-      .build();
+	private final OkHttpClient client = new OkHttpClient.Builder()
+		.certificatePinner(
+			new CertificatePinner.Builder()
+				.add("publicobject.com", "sha256/Vjs8r4z+80wjNcr1YKepWQboSIRi63WsWXhIMN+eWys=")
+				.build())
+		.build();
 
-  public void run() throws Exception {
-    Request request = new Request.Builder()
-        .url("https://publicobject.com/robots.txt")
-        .build();
+	public static void main(String... args) throws Exception {
+		new CertificatePinning().run();
+	}
 
-    try (Response response = client.newCall(request).execute()) {
-      if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
+	public void run() throws Exception {
+		Request request = new Request.Builder()
+			.url("https://publicobject.com/robots.txt")
+			.build();
 
-      for (Certificate certificate : response.handshake().peerCertificates()) {
-        System.out.println(CertificatePinner.pin(certificate));
-      }
-    }
-  }
+		try (Response response = client.newCall(request).execute()) {
+			if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
 
-  public static void main(String... args) throws Exception {
-    new CertificatePinning().run();
-  }
+			for (Certificate certificate : response.handshake().peerCertificates()) {
+				System.out.println(CertificatePinner.pin(certificate));
+			}
+		}
+	}
 }

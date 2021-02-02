@@ -15,38 +15,44 @@
  */
 package okhttp3.internal.platform;
 
-import okhttp3.testing.PlatformRule;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
+
+import okhttp3.testing.PlatformRule;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class PlatformTest {
-  @RegisterExtension public PlatformRule platform = new PlatformRule();
+	@RegisterExtension
+	public PlatformRule platform = new PlatformRule();
 
-  @Test public void alwaysBuilds() {
-    new Platform();
-  }
+	public static String getJvmSpecVersion() {
+		return System.getProperty("java.specification.version", "unknown");
+	}
 
-  /** Guard against the default value changing by accident. */
-  @Test public void defaultPrefix() {
-    assertThat(new Platform().getPrefix()).isEqualTo("OkHttp");
-  }
+	@Test
+	public void alwaysBuilds() {
+		new Platform();
+	}
 
-  public static String getJvmSpecVersion() {
-    return System.getProperty("java.specification.version", "unknown");
-  }
+	/**
+	 * Guard against the default value changing by accident.
+	 */
+	@Test
+	public void defaultPrefix() {
+		assertThat(new Platform().getPrefix()).isEqualTo("OkHttp");
+	}
 
-  @Test
-  public void testToStringIsClassname() {
-    assertThat(new Platform().toString()).isEqualTo("Platform");
-  }
+	@Test
+	public void testToStringIsClassname() {
+		assertThat(new Platform().toString()).isEqualTo("Platform");
+	}
 
-  @Test
-  public void testNotAndroid() {
-    platform.assumeNotAndroid();
+	@Test
+	public void testNotAndroid() {
+		platform.assumeNotAndroid();
 
-    // This is tautological so just confirms that it runs.
-    assertThat(Platform.Companion.isAndroid()).isEqualTo(false);
-  }
+		// This is tautological so just confirms that it runs.
+		assertThat(Platform.Companion.isAndroid()).isEqualTo(false);
+	}
 }

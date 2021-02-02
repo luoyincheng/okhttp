@@ -22,42 +22,46 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 
 class HeadersKotlinTest {
-  @Test fun getOperator() {
-    val headers = headersOf("a", "b", "c", "d")
-    assertThat(headers["a"]).isEqualTo("b")
-    assertThat(headers["c"]).isEqualTo("d")
-    assertThat(headers["e"]).isNull()
-  }
+   @Test
+   fun getOperator() {
+      val headers = headersOf("a", "b", "c", "d")
+      assertThat(headers["a"]).isEqualTo("b")
+      assertThat(headers["c"]).isEqualTo("d")
+      assertThat(headers["e"]).isNull()
+   }
 
-  @Test fun iteratorOperator() {
-    val headers = headersOf("a", "b", "c", "d")
+   @Test
+   fun iteratorOperator() {
+      val headers = headersOf("a", "b", "c", "d")
 
-    val pairs = mutableListOf<Pair<String, String>>()
-    for ((name, value) in headers) {
-      pairs += name to value
-    }
+      val pairs = mutableListOf<Pair<String, String>>()
+      for ((name, value) in headers) {
+         pairs += name to value
+      }
 
-    assertThat(pairs).containsExactly("a" to "b", "c" to "d")
-  }
+      assertThat(pairs).containsExactly("a" to "b", "c" to "d")
+   }
 
-  @Test fun builderGetOperator() {
-    val builder = Headers.Builder()
-    builder.add("a", "b")
-    builder.add("c", "d")
-    assertThat(builder["a"]).isEqualTo("b")
-    assertThat(builder["c"]).isEqualTo("d")
-    assertThat(builder["e"]).isNull()
-  }
+   @Test
+   fun builderGetOperator() {
+      val builder = Headers.Builder()
+      builder.add("a", "b")
+      builder.add("c", "d")
+      assertThat(builder["a"]).isEqualTo("b")
+      assertThat(builder["c"]).isEqualTo("d")
+      assertThat(builder["e"]).isNull()
+   }
 
-  @Test fun builderSetOperator() {
-    val builder = Headers.Builder()
-    builder["a"] = "b"
-    builder["c"] = "d"
-    builder["e"] = Date(0L)
-    builder["g"] = Instant.EPOCH
-    assertThat(builder.get("a")).isEqualTo("b")
-    assertThat(builder.get("c")).isEqualTo("d")
-    assertThat(builder.get("e")).isEqualTo("Thu, 01 Jan 1970 00:00:00 GMT")
-    assertThat(builder.get("g")).isEqualTo("Thu, 01 Jan 1970 00:00:00 GMT")
-  }
+   @Test
+   fun builderSetOperator() {
+      val builder = Headers.Builder()
+      builder["a"] = "b"
+      builder["c"] = "d"
+      builder["e"] = Date(0L)
+      builder["g"] = Instant.EPOCH
+      assertThat(builder.get("a")).isEqualTo("b")
+      assertThat(builder.get("c")).isEqualTo("d")
+      assertThat(builder.get("e")).isEqualTo("Thu, 01 Jan 1970 00:00:00 GMT")
+      assertThat(builder.get("g")).isEqualTo("Thu, 01 Jan 1970 00:00:00 GMT")
+   }
 }

@@ -20,25 +20,25 @@ import okhttp3.Response
 import okhttp3.sse.internal.RealEventSource
 
 object EventSources {
-  @JvmStatic
-  fun createFactory(client: OkHttpClient): EventSource.Factory {
-    return EventSource.Factory { request, listener ->
-      val actualRequest =
-        if (request.header("Accept") == null) {
-          request.newBuilder().addHeader("Accept", "text/event-stream").build()
-        } else {
-          request
-        }
+   @JvmStatic
+   fun createFactory(client: OkHttpClient): EventSource.Factory {
+      return EventSource.Factory { request, listener ->
+         val actualRequest =
+            if (request.header("Accept") == null) {
+               request.newBuilder().addHeader("Accept", "text/event-stream").build()
+            } else {
+               request
+            }
 
-      RealEventSource(actualRequest, listener).apply {
-        connect(client)
+         RealEventSource(actualRequest, listener).apply {
+            connect(client)
+         }
       }
-    }
-  }
+   }
 
-  @JvmStatic
-  fun processResponse(response: Response, listener: EventSourceListener) {
-    val eventSource = RealEventSource(response.request, listener)
-    eventSource.processResponse(response)
-  }
+   @JvmStatic
+   fun processResponse(response: Response, listener: EventSourceListener) {
+      val eventSource = RealEventSource(response.request, listener)
+      eventSource.processResponse(response)
+   }
 }

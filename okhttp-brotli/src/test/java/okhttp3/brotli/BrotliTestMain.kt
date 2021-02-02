@@ -19,18 +19,18 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 
 fun main() {
-  val client = OkHttpClient.Builder()
+   val client = OkHttpClient.Builder()
       .addInterceptor(BrotliInterceptor)
       .build()
 
-  sendRequest("https://httpbin.org/brotli", client)
-  sendRequest("https://httpbin.org/gzip", client)
+   sendRequest("https://httpbin.org/brotli", client)
+   sendRequest("https://httpbin.org/gzip", client)
 }
 
 private fun sendRequest(url: String, client: OkHttpClient) {
-  val req = Request.Builder().url(url).build()
+   val req = Request.Builder().url(url).build()
 
-  client.newCall(req).execute().use {
-    println(it.body?.string())
-  }
+   client.newCall(req).execute().use {
+      println(it.body?.string())
+   }
 }

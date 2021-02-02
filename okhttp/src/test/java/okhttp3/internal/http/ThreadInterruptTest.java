@@ -15,14 +15,22 @@
  */
 package okhttp3.internal.http;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.TimeUnit;
+
 import javax.annotation.Nullable;
 import javax.net.ServerSocketFactory;
 import javax.net.SocketFactory;
+
 import okhttp3.Call;
 import okhttp3.DelegatingServerSocketFactory;
 import okhttp3.DelegatingSocketFactory;
@@ -37,124 +45,126 @@ import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.testing.PlatformRule;
 import okio.Buffer;
 import okio.BufferedSink;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.RegisterExtension;
 
 import static org.junit.jupiter.api.Assertions.fail;
 
 @Tag("Slowish")
 public final class ThreadInterruptTest {
-  @RegisterExtension public final PlatformRule platform = new PlatformRule();
-  @RegisterExtension public final OkHttpClientTestRule clientTestRule = new OkHttpClientTestRule();
+	// The size of the socket buffers in bytes.
+	private static final int SOCKET_BUFFER_SIZE = 256 * 1024;
+	@RegisterExtension
+	public final PlatformRule platform = new PlatformRule();
+	@RegisterExtension
+	public final OkHttpClientTestRule clientTestRule = new OkHttpClientTestRule();
+	private MockWebServer server;
+	private OkHttpClient client;
 
-  // The size of the socket buffers in bytes.
-  private static final int SOCKET_BUFFER_SIZE = 256 * 1024;
+	@BeforeEach
+	public void setUp() throws Exception {
+		// Sockets on some platforms can have large buffers that mean writes do not block when
+		// required. These socket factories explicitly set the buffer sizes on sockets created.
+		server = new MockWebServer();
+		server.setServerSocketFactory(
+			new DelegatingServerSocketFactory(ServerSocketFactory.getDefault()) {
+				@Override
+				protected ServerSocket configureServerSocket(ServerSocket serverSocket)
+					throws IOException {
+					serverSocket.setReceiveBufferSize(SOCKET_BUFFER_SIZE);
+					return serverSocket;
+				}
+			});
+		client = clientTestRule.newClientBuilder()
+			.socketFactory(new DelegatingSocketFactory(SocketFactory.getDefault()) {
+				@Override
+				protected Socket configureSocket(Socket socket) throws IOException {
+					socket.setSendBufferSize(SOCKET_BUFFER_SIZE);
+					socket.setReceiveBufferSize(SOCKET_BUFFER_SIZE);
+					return socket;
+				}
+			})
+			.build();
+	}
 
-  private MockWebServer server;
-  private OkHttpClient client;
+	@AfterEach
+	public void tearDown() throws Exception {
+		Thread.interrupted(); // Clear interrupted state.
+	}
 
-  @BeforeEach public void setUp() throws Exception {
-    // Sockets on some platforms can have large buffers that mean writes do not block when
-    // required. These socket factories explicitly set the buffer sizes on sockets created.
-    server = new MockWebServer();
-    server.setServerSocketFactory(
-        new DelegatingServerSocketFactory(ServerSocketFactory.getDefault()) {
-          @Override
-          protected ServerSocket configureServerSocket(ServerSocket serverSocket)
-              throws IOException {
-            serverSocket.setReceiveBufferSize(SOCKET_BUFFER_SIZE);
-            return serverSocket;
-          }
-        });
-    client = clientTestRule.newClientBuilder()
-        .socketFactory(new DelegatingSocketFactory(SocketFactory.getDefault()) {
-          @Override
-          protected Socket configureSocket(Socket socket) throws IOException {
-            socket.setSendBufferSize(SOCKET_BUFFER_SIZE);
-            socket.setReceiveBufferSize(SOCKET_BUFFER_SIZE);
-            return socket;
-          }
-        })
-        .build();
-  }
+	@Test
+	public void interruptWritingRequestBody() throws Exception {
+		server.enqueue(new MockResponse());
+		server.start();
 
-  @AfterEach public void tearDown() throws Exception {
-    Thread.interrupted(); // Clear interrupted state.
-  }
+		Call call = client.newCall(new Request.Builder()
+			.url(server.url("/"))
+			.post(new RequestBody() {
+				@Override
+				public @Nullable
+				MediaType contentType() {
+					return null;
+				}
 
-  @Test public void interruptWritingRequestBody() throws Exception {
-    server.enqueue(new MockResponse());
-    server.start();
+				@Override
+				public void writeTo(BufferedSink sink) throws IOException {
+					for (int i = 0; i < 10; i++) {
+						sink.writeByte(0);
+						sink.flush();
+						sleep(100);
+					}
+					fail("Expected connection to be closed");
+				}
+			})
+			.build());
 
-    Call call = client.newCall(new Request.Builder()
-        .url(server.url("/"))
-        .post(new RequestBody() {
-          @Override public @Nullable MediaType contentType() {
-            return null;
-          }
+		interruptLater(500);
+		try {
+			call.execute();
+			fail("");
+		} catch (IOException expected) {
+		}
+	}
 
-          @Override public void writeTo(BufferedSink sink) throws IOException {
-            for (int i = 0; i < 10; i++) {
-              sink.writeByte(0);
-              sink.flush();
-              sleep(100);
-            }
-            fail("Expected connection to be closed");
-          }
-        })
-        .build());
+	@Test
+	public void interruptReadingResponseBody() throws Exception {
+		int responseBodySize = 8 * 1024 * 1024; // 8 MiB.
 
-    interruptLater(500);
-    try {
-      call.execute();
-      fail("");
-    } catch (IOException expected) {
-    }
-  }
+		server.enqueue(new MockResponse()
+			.setBody(new Buffer().write(new byte[responseBodySize]))
+			.throttleBody(64 * 1024, 125, TimeUnit.MILLISECONDS)); // 500 Kbps
+		server.start();
 
-  @Test public void interruptReadingResponseBody() throws Exception {
-    int responseBodySize = 8 * 1024 * 1024; // 8 MiB.
+		Call call = client.newCall(new Request.Builder()
+			.url(server.url("/"))
+			.build());
 
-    server.enqueue(new MockResponse()
-        .setBody(new Buffer().write(new byte[responseBodySize]))
-        .throttleBody(64 * 1024, 125, TimeUnit.MILLISECONDS)); // 500 Kbps
-    server.start();
+		Response response = call.execute();
+		interruptLater(500);
+		InputStream responseBody = response.body().byteStream();
+		byte[] buffer = new byte[1024];
+		try {
+			while (responseBody.read(buffer) != -1) {
+			}
+			fail("Expected connection to be interrupted");
+		} catch (IOException expected) {
+		}
 
-    Call call = client.newCall(new Request.Builder()
-        .url(server.url("/"))
-        .build());
+		responseBody.close();
+	}
 
-    Response response = call.execute();
-    interruptLater(500);
-    InputStream responseBody = response.body().byteStream();
-    byte[] buffer = new byte[1024];
-    try {
-      while (responseBody.read(buffer) != -1) {
-      }
-      fail("Expected connection to be interrupted");
-    } catch (IOException expected) {
-    }
+	private void sleep(int delayMillis) {
+		try {
+			Thread.sleep(delayMillis);
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+		}
+	}
 
-    responseBody.close();
-  }
-
-  private void sleep(int delayMillis) {
-    try {
-      Thread.sleep(delayMillis);
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-    }
-  }
-
-  private void interruptLater(int delayMillis) {
-    Thread toInterrupt = Thread.currentThread();
-    Thread interruptingCow = new Thread(() -> {
-      sleep(delayMillis);
-      toInterrupt.interrupt();
-    });
-    interruptingCow.start();
-  }
+	private void interruptLater(int delayMillis) {
+		Thread toInterrupt = Thread.currentThread();
+		Thread interruptingCow = new Thread(() -> {
+			sleep(delayMillis);
+			toInterrupt.interrupt();
+		});
+		interruptingCow.start();
+	}
 }

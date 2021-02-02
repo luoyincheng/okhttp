@@ -43,20 +43,20 @@ import okio.ByteString.Companion.toByteString
  * ```
  */
 fun String.decodeCertificatePem(): X509Certificate {
-  try {
-    val certificateFactory = CertificateFactory.getInstance("X.509")
-    val certificates = certificateFactory
-        .generateCertificates(
+   try {
+      val certificateFactory = CertificateFactory.getInstance("X.509")
+      val certificates = certificateFactory
+         .generateCertificates(
             Buffer().writeUtf8(this).inputStream())
 
-    return certificates.single() as X509Certificate
-  } catch (nsee: NoSuchElementException) {
-    throw IllegalArgumentException("failed to decode certificate", nsee)
-  } catch (iae: IllegalArgumentException) {
-    throw IllegalArgumentException("failed to decode certificate", iae)
-  } catch (e: GeneralSecurityException) {
-    throw IllegalArgumentException("failed to decode certificate", e)
-  }
+      return certificates.single() as X509Certificate
+   } catch (nsee: NoSuchElementException) {
+      throw IllegalArgumentException("failed to decode certificate", nsee)
+   } catch (iae: IllegalArgumentException) {
+      throw IllegalArgumentException("failed to decode certificate", iae)
+   } catch (e: GeneralSecurityException) {
+      throw IllegalArgumentException("failed to decode certificate", e)
+   }
 }
 
 /**
@@ -65,16 +65,16 @@ fun String.decodeCertificatePem(): X509Certificate {
  * [rfc_7468]: https://tools.ietf.org/html/rfc7468
  */
 fun X509Certificate.certificatePem(): String {
-  return buildString {
-    append("-----BEGIN CERTIFICATE-----\n")
-    encodeBase64Lines(encoded.toByteString())
-    append("-----END CERTIFICATE-----\n")
-  }
+   return buildString {
+      append("-----BEGIN CERTIFICATE-----\n")
+      encodeBase64Lines(encoded.toByteString())
+      append("-----END CERTIFICATE-----\n")
+   }
 }
 
 internal fun StringBuilder.encodeBase64Lines(data: ByteString) {
-  val base64 = data.base64()
-  for (i in 0 until base64.length step 64) {
-    append(base64, i, minOf(i + 64, base64.length)).append('\n')
-  }
+   val base64 = data.base64()
+   for (i in 0 until base64.length step 64) {
+      append(base64, i, minOf(i + 64, base64.length)).append('\n')
+   }
 }

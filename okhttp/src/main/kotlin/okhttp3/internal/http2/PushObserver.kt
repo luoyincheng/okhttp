@@ -37,60 +37,62 @@ import okio.BufferedSource
  * future frames won't arrive on the stream ID.
  */
 interface PushObserver {
-  /**
-   * Describes the request that the server intends to push a response for.
-   *
-   * @param streamId server-initiated stream ID: an even number.
-   * @param requestHeaders minimally includes `:method`, `:scheme`, `:authority`,
-   * and `:path`.
-   */
-  fun onRequest(streamId: Int, requestHeaders: List<Header>): Boolean
+   /**
+    * Describes the request that the server intends to push a response for.
+    *
+    * @param streamId server-initiated stream ID: an even number.
+    * @param requestHeaders minimally includes `:method`, `:scheme`, `:authority`,
+    * and `:path`.
+    */
+   fun onRequest(streamId: Int, requestHeaders: List<Header>): Boolean
 
-  /**
-   * The response headers corresponding to a pushed request.  When [last] is true, there are
-   * no data frames to follow.
-   *
-   * @param streamId server-initiated stream ID: an even number.
-   * @param responseHeaders minimally includes `:status`.
-   * @param last when true, there is no response data.
-   */
-  fun onHeaders(streamId: Int, responseHeaders: List<Header>, last: Boolean): Boolean
+   /**
+    * The response headers corresponding to a pushed request.  When [last] is true, there are
+    * no data frames to follow.
+    *
+    * @param streamId server-initiated stream ID: an even number.
+    * @param responseHeaders minimally includes `:status`.
+    * @param last when true, there is no response data.
+    */
+   fun onHeaders(streamId: Int, responseHeaders: List<Header>, last: Boolean): Boolean
 
-  /**
-   * A chunk of response data corresponding to a pushed request.  This data must either be read or
-   * skipped.
-   *
-   * @param streamId server-initiated stream ID: an even number.
-   * @param source location of data corresponding with this stream ID.
-   * @param byteCount number of bytes to read or skip from the source.
-   * @param last when true, there are no data frames to follow.
-   */
-  @Throws(IOException::class)
-  fun onData(streamId: Int, source: BufferedSource, byteCount: Int, last: Boolean): Boolean
+   /**
+    * A chunk of response data corresponding to a pushed request.  This data must either be read or
+    * skipped.
+    *
+    * @param streamId server-initiated stream ID: an even number.
+    * @param source location of data corresponding with this stream ID.
+    * @param byteCount number of bytes to read or skip from the source.
+    * @param last when true, there are no data frames to follow.
+    */
+   @Throws(IOException::class)
+   fun onData(streamId: Int, source: BufferedSource, byteCount: Int, last: Boolean): Boolean
 
-  /** Indicates the reason why this stream was canceled. */
-  fun onReset(streamId: Int, errorCode: ErrorCode)
+   /** Indicates the reason why this stream was canceled. */
+   fun onReset(streamId: Int, errorCode: ErrorCode)
 
-  companion object {
-    @JvmField val CANCEL: PushObserver = PushObserverCancel()
-    private class PushObserverCancel : PushObserver {
+   companion object {
+      @JvmField
+      val CANCEL: PushObserver = PushObserverCancel()
 
-      override fun onRequest(streamId: Int, requestHeaders: List<Header>): Boolean {
-        return true
+      private class PushObserverCancel : PushObserver {
+
+         override fun onRequest(streamId: Int, requestHeaders: List<Header>): Boolean {
+            return true
+         }
+
+         override fun onHeaders(streamId: Int, responseHeaders: List<Header>, last: Boolean): Boolean {
+            return true
+         }
+
+         @Throws(IOException::class)
+         override fun onData(streamId: Int, source: BufferedSource, byteCount: Int, last: Boolean): Boolean {
+            source.skip(byteCount.toLong())
+            return true
+         }
+
+         override fun onReset(streamId: Int, errorCode: ErrorCode) {
+         }
       }
-
-      override fun onHeaders(streamId: Int, responseHeaders: List<Header>, last: Boolean): Boolean {
-        return true
-      }
-
-      @Throws(IOException::class)
-      override fun onData(streamId: Int, source: BufferedSource, byteCount: Int, last: Boolean): Boolean {
-        source.skip(byteCount.toLong())
-        return true
-      }
-
-      override fun onReset(streamId: Int, errorCode: ErrorCode) {
-      }
-    }
-  }
+   }
 }

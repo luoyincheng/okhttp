@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.LinkedHashMap;
 import java.util.Map;
+
 import okhttp3.HttpUrl;
 import okhttp3.mockwebserver.Dispatcher;
 import okhttp3.mockwebserver.MockResponse;
@@ -34,93 +35,99 @@ import okio.ByteString;
  * Clients may request multiple sessions.
  */
 public final class OAuthSessionFactory extends Dispatcher implements Closeable {
-  private final SecureRandom secureRandom = new SecureRandom();
+	private final SecureRandom secureRandom = new SecureRandom();
 
-  private final SlackApi slackApi;
-  private MockWebServer mockWebServer;
+	private final SlackApi slackApi;
+	private MockWebServer mockWebServer;
 
-  /** Guarded by this. */
-  private Map<ByteString, Listener> listeners = new LinkedHashMap<>();
+	/**
+	 * Guarded by this.
+	 */
+	private Map<ByteString, Listener> listeners = new LinkedHashMap<>();
 
-  public OAuthSessionFactory(SlackApi slackApi) {
-    this.slackApi = slackApi;
-  }
+	public OAuthSessionFactory(SlackApi slackApi) {
+		this.slackApi = slackApi;
+	}
 
-  public void start() throws Exception {
-    if (mockWebServer != null) throw new IllegalStateException();
+	public void start() throws Exception {
+		if (mockWebServer != null) throw new IllegalStateException();
 
-    mockWebServer = new MockWebServer();
-    mockWebServer.setDispatcher(this);
-    mockWebServer.start(slackApi.port);
-  }
+		mockWebServer = new MockWebServer();
+		mockWebServer.setDispatcher(this);
+		mockWebServer.start(slackApi.port);
+	}
 
-  public HttpUrl newAuthorizeUrl(String scopes, String team, Listener listener) {
-    if (mockWebServer == null) throw new IllegalStateException();
+	public HttpUrl newAuthorizeUrl(String scopes, String team, Listener listener) {
+		if (mockWebServer == null) throw new IllegalStateException();
 
-    ByteString state = randomToken();
-    synchronized (this) {
-      listeners.put(state, listener);
-    }
+		ByteString state = randomToken();
+		synchronized (this) {
+			listeners.put(state, listener);
+		}
 
-    return slackApi.authorizeUrl(scopes, redirectUrl(), state, team);
-  }
+		return slackApi.authorizeUrl(scopes, redirectUrl(), state, team);
+	}
 
-  private ByteString randomToken() {
-    byte[] bytes = new byte[16];
-    secureRandom.nextBytes(bytes);
-    return ByteString.of(bytes);
-  }
+	private ByteString randomToken() {
+		byte[] bytes = new byte[16];
+		secureRandom.nextBytes(bytes);
+		return ByteString.of(bytes);
+	}
 
-  private HttpUrl redirectUrl() {
-    return mockWebServer.url("/oauth/");
-  }
+	private HttpUrl redirectUrl() {
+		return mockWebServer.url("/oauth/");
+	}
 
-  /** When the browser hits the redirect URL, use the provided code to ask Slack for a session. */
-  @Override public MockResponse dispatch(RecordedRequest request) {
-    HttpUrl requestUrl = mockWebServer.url(request.getPath());
-    String code = requestUrl.queryParameter("code");
-    String stateString = requestUrl.queryParameter("state");
-    ByteString state = stateString != null ? ByteString.decodeBase64(stateString) : null;
+	/**
+	 * When the browser hits the redirect URL, use the provided code to ask Slack for a session.
+	 */
+	@Override
+	public MockResponse dispatch(RecordedRequest request) {
+		HttpUrl requestUrl = mockWebServer.url(request.getPath());
+		String code = requestUrl.queryParameter("code");
+		String stateString = requestUrl.queryParameter("state");
+		ByteString state = stateString != null ? ByteString.decodeBase64(stateString) : null;
 
-    Listener listener;
-    synchronized (this) {
-      listener = listeners.get(state);
-    }
+		Listener listener;
+		synchronized (this) {
+			listener = listeners.get(state);
+		}
 
-    if (code == null || listener == null) {
-      return new MockResponse()
-          .setResponseCode(404)
-          .setBody("unexpected request");
-    }
+		if (code == null || listener == null) {
+			return new MockResponse()
+				.setResponseCode(404)
+				.setBody("unexpected request");
+		}
 
-    try {
-      OAuthSession session = slackApi.exchangeCode(code, redirectUrl());
-      listener.sessionGranted(session);
-    } catch (IOException e) {
-      return new MockResponse()
-          .setResponseCode(400)
-          .setBody("code exchange failed: " + e.getMessage());
-    }
+		try {
+			OAuthSession session = slackApi.exchangeCode(code, redirectUrl());
+			listener.sessionGranted(session);
+		} catch (IOException e) {
+			return new MockResponse()
+				.setResponseCode(400)
+				.setBody("code exchange failed: " + e.getMessage());
+		}
 
-    synchronized (this) {
-      listeners.remove(state);
-    }
+		synchronized (this) {
+			listeners.remove(state);
+		}
 
-    // Success!
-    return new MockResponse()
-        .setResponseCode(302)
-        .addHeader("Location", "https://twitter.com/CuteEmergency/status/789457462864863232");
-  }
+		// Success!
+		return new MockResponse()
+			.setResponseCode(302)
+			.addHeader("Location", "https://twitter.com/CuteEmergency/status/789457462864863232");
+	}
 
-  public interface Listener {
-    void sessionGranted(OAuthSession session);
-  }
+	@Override
+	public void close() {
+		if (mockWebServer == null) throw new IllegalStateException();
+		try {
+			mockWebServer.close();
+		} catch (IOException ignored) {
+		}
+	}
 
-  @Override public void close() {
-    if (mockWebServer == null) throw new IllegalStateException();
-    try {
-      mockWebServer.close();
-    } catch (IOException ignored) {
-    }
-  }
+	public interface Listener {
+		void sessionGranted(OAuthSession session);
+	}
 }

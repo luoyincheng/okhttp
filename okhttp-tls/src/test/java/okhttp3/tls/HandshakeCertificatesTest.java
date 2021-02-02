@@ -15,6 +15,11 @@
  */
 package okhttp3.tls;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
+
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -29,183 +34,187 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
+
 import javax.net.ServerSocketFactory;
 import javax.net.SocketFactory;
 import javax.net.ssl.SSLSocket;
+
 import okhttp3.Handshake;
 import okhttp3.testing.PlatformRule;
 import okio.ByteString;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.RegisterExtension;
 
 import static java.util.Arrays.asList;
 import static okhttp3.internal.Util.closeQuietly;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public final class HandshakeCertificatesTest {
-  @RegisterExtension public PlatformRule platform = new PlatformRule();
+	@RegisterExtension
+	public PlatformRule platform = new PlatformRule();
 
-  private ExecutorService executorService;
-  private ServerSocket serverSocket;
+	private ExecutorService executorService;
+	private ServerSocket serverSocket;
 
-  @BeforeEach public void setUp() {
-    executorService = Executors.newCachedThreadPool();
-  }
+	public static String getPlatform() {
+		return System.getProperty("okhttp.platform", "platform");
+	}
 
-  @AfterEach public void tearDown() {
-    executorService.shutdown();
-    if (serverSocket != null) {
-      closeQuietly(serverSocket);
-    }
-  }
+	@BeforeEach
+	public void setUp() {
+		executorService = Executors.newCachedThreadPool();
+	}
 
-  @Test public void clientAndServer() throws Exception {
-    platform.assumeNotConscrypt();
-    platform.assumeNotBouncyCastle();
+	@AfterEach
+	public void tearDown() {
+		executorService.shutdown();
+		if (serverSocket != null) {
+			closeQuietly(serverSocket);
+		}
+	}
 
-    HeldCertificate clientRoot = new HeldCertificate.Builder()
-        .certificateAuthority(1)
-        .build();
-    HeldCertificate clientIntermediate = new HeldCertificate.Builder()
-        .certificateAuthority(0)
-        .signedBy(clientRoot)
-        .build();
-    HeldCertificate clientCertificate = new HeldCertificate.Builder()
-        .signedBy(clientIntermediate)
-        .build();
+	@Test
+	public void clientAndServer() throws Exception {
+		platform.assumeNotConscrypt();
+		platform.assumeNotBouncyCastle();
 
-    HeldCertificate serverRoot = new HeldCertificate.Builder()
-        .certificateAuthority(1)
-        .build();
-    HeldCertificate serverIntermediate = new HeldCertificate.Builder()
-        .certificateAuthority(0)
-        .signedBy(serverRoot)
-        .build();
-    HeldCertificate serverCertificate = new HeldCertificate.Builder()
-        .signedBy(serverIntermediate)
-        .build();
+		HeldCertificate clientRoot = new HeldCertificate.Builder()
+			.certificateAuthority(1)
+			.build();
+		HeldCertificate clientIntermediate = new HeldCertificate.Builder()
+			.certificateAuthority(0)
+			.signedBy(clientRoot)
+			.build();
+		HeldCertificate clientCertificate = new HeldCertificate.Builder()
+			.signedBy(clientIntermediate)
+			.build();
 
-    HandshakeCertificates server = new HandshakeCertificates.Builder()
-        .addTrustedCertificate(clientRoot.certificate())
-        .heldCertificate(serverCertificate, serverIntermediate.certificate())
-        .build();
+		HeldCertificate serverRoot = new HeldCertificate.Builder()
+			.certificateAuthority(1)
+			.build();
+		HeldCertificate serverIntermediate = new HeldCertificate.Builder()
+			.certificateAuthority(0)
+			.signedBy(serverRoot)
+			.build();
+		HeldCertificate serverCertificate = new HeldCertificate.Builder()
+			.signedBy(serverIntermediate)
+			.build();
 
-    HandshakeCertificates client = new HandshakeCertificates.Builder()
-        .addTrustedCertificate(serverRoot.certificate())
-        .heldCertificate(clientCertificate, clientIntermediate.certificate())
-        .build();
+		HandshakeCertificates server = new HandshakeCertificates.Builder()
+			.addTrustedCertificate(clientRoot.certificate())
+			.heldCertificate(serverCertificate, serverIntermediate.certificate())
+			.build();
 
-    InetSocketAddress serverAddress = startTlsServer();
-    Future<Handshake> serverHandshakeFuture = doServerHandshake(server);
-    Future<Handshake> clientHandshakeFuture = doClientHandshake(client, serverAddress);
+		HandshakeCertificates client = new HandshakeCertificates.Builder()
+			.addTrustedCertificate(serverRoot.certificate())
+			.heldCertificate(clientCertificate, clientIntermediate.certificate())
+			.build();
 
-    Handshake serverHandshake = serverHandshakeFuture.get();
-    assertThat(asList(clientCertificate.certificate(), clientIntermediate.certificate()))
-        .isEqualTo(serverHandshake.peerCertificates());
-    assertThat(asList(serverCertificate.certificate(), serverIntermediate.certificate()))
-        .isEqualTo(serverHandshake.localCertificates());
+		InetSocketAddress serverAddress = startTlsServer();
+		Future<Handshake> serverHandshakeFuture = doServerHandshake(server);
+		Future<Handshake> clientHandshakeFuture = doClientHandshake(client, serverAddress);
 
-    Handshake clientHandshake = clientHandshakeFuture.get();
-    assertThat(asList(serverCertificate.certificate(), serverIntermediate.certificate()))
-        .isEqualTo(clientHandshake.peerCertificates());
-    assertThat(asList(clientCertificate.certificate(), clientIntermediate.certificate()))
-        .isEqualTo(clientHandshake.localCertificates());
-  }
+		Handshake serverHandshake = serverHandshakeFuture.get();
+		assertThat(asList(clientCertificate.certificate(), clientIntermediate.certificate()))
+			.isEqualTo(serverHandshake.peerCertificates());
+		assertThat(asList(serverCertificate.certificate(), serverIntermediate.certificate()))
+			.isEqualTo(serverHandshake.localCertificates());
 
-  @Test public void keyManager() {
-    HeldCertificate root = new HeldCertificate.Builder()
-        .certificateAuthority(1)
-        .build();
-    HeldCertificate intermediate = new HeldCertificate.Builder()
-        .certificateAuthority(0)
-        .signedBy(root)
-        .build();
-    HeldCertificate certificate = new HeldCertificate.Builder()
-        .signedBy(intermediate)
-        .build();
+		Handshake clientHandshake = clientHandshakeFuture.get();
+		assertThat(asList(serverCertificate.certificate(), serverIntermediate.certificate()))
+			.isEqualTo(clientHandshake.peerCertificates());
+		assertThat(asList(clientCertificate.certificate(), clientIntermediate.certificate()))
+			.isEqualTo(clientHandshake.localCertificates());
+	}
 
-    HandshakeCertificates handshakeCertificates = new HandshakeCertificates.Builder()
-        .addTrustedCertificate(root.certificate()) // BouncyCastle requires at least one
-        .heldCertificate(certificate, intermediate.certificate())
-        .build();
-    assertPrivateKeysEquals(certificate.keyPair().getPrivate(),
-        handshakeCertificates.keyManager().getPrivateKey("private"));
-    assertThat(asList(handshakeCertificates.keyManager().getCertificateChain("private"))).isEqualTo(
-        asList(certificate.certificate(), intermediate.certificate()));
-  }
+	@Test
+	public void keyManager() {
+		HeldCertificate root = new HeldCertificate.Builder()
+			.certificateAuthority(1)
+			.build();
+		HeldCertificate intermediate = new HeldCertificate.Builder()
+			.certificateAuthority(0)
+			.signedBy(root)
+			.build();
+		HeldCertificate certificate = new HeldCertificate.Builder()
+			.signedBy(intermediate)
+			.build();
 
-  @Test public void platformTrustedCertificates() {
-    HandshakeCertificates handshakeCertificates = new HandshakeCertificates.Builder()
-        .addPlatformTrustedCertificates()
-        .build();
-    X509Certificate[] acceptedIssuers = handshakeCertificates.trustManager().getAcceptedIssuers();
-    Set<String> names = Arrays.stream(acceptedIssuers)
-        .map(cert -> cert.getSubjectDN().getName())
-        .collect(Collectors.toCollection(LinkedHashSet::new));
+		HandshakeCertificates handshakeCertificates = new HandshakeCertificates.Builder()
+			.addTrustedCertificate(root.certificate()) // BouncyCastle requires at least one
+			.heldCertificate(certificate, intermediate.certificate())
+			.build();
+		assertPrivateKeysEquals(certificate.keyPair().getPrivate(),
+			handshakeCertificates.keyManager().getPrivateKey("private"));
+		assertThat(asList(handshakeCertificates.keyManager().getCertificateChain("private"))).isEqualTo(
+			asList(certificate.certificate(), intermediate.certificate()));
+	}
 
-    // It's safe to assume all platforms will have a major Internet certificate issuer.
-    assertThat(names).anyMatch(s -> s.matches("[A-Z]+=Entrust.*"));
-  }
+	@Test
+	public void platformTrustedCertificates() {
+		HandshakeCertificates handshakeCertificates = new HandshakeCertificates.Builder()
+			.addPlatformTrustedCertificates()
+			.build();
+		X509Certificate[] acceptedIssuers = handshakeCertificates.trustManager().getAcceptedIssuers();
+		Set<String> names = Arrays.stream(acceptedIssuers)
+			.map(cert -> cert.getSubjectDN().getName())
+			.collect(Collectors.toCollection(LinkedHashSet::new));
 
-  private InetSocketAddress startTlsServer() throws IOException {
-    ServerSocketFactory serverSocketFactory = ServerSocketFactory.getDefault();
-    serverSocket = serverSocketFactory.createServerSocket();
-    InetAddress serverAddress = InetAddress.getByName("localhost");
-    serverSocket.bind(new InetSocketAddress(serverAddress, 0), 50);
-    return new InetSocketAddress(serverAddress, serverSocket.getLocalPort());
-  }
+		// It's safe to assume all platforms will have a major Internet certificate issuer.
+		assertThat(names).anyMatch(s -> s.matches("[A-Z]+=Entrust.*"));
+	}
 
-  private Future<Handshake> doServerHandshake(HandshakeCertificates server) {
-    return executorService.submit(() -> {
-      Socket rawSocket = null;
-      SSLSocket sslSocket = null;
-      try {
-        rawSocket = serverSocket.accept();
-        sslSocket = (SSLSocket) server.sslSocketFactory().createSocket(rawSocket,
-            rawSocket.getInetAddress().getHostAddress(), rawSocket.getPort(), true /* autoClose */);
-        sslSocket.setUseClientMode(false);
-        sslSocket.setWantClientAuth(true);
-        sslSocket.startHandshake();
-        return Handshake.get(sslSocket.getSession());
-      } finally {
-        if (rawSocket != null) {
-          closeQuietly(rawSocket);
-        }
-        if (sslSocket != null) {
-          closeQuietly(sslSocket);
-        }
-      }
-    });
-  }
+	private InetSocketAddress startTlsServer() throws IOException {
+		ServerSocketFactory serverSocketFactory = ServerSocketFactory.getDefault();
+		serverSocket = serverSocketFactory.createServerSocket();
+		InetAddress serverAddress = InetAddress.getByName("localhost");
+		serverSocket.bind(new InetSocketAddress(serverAddress, 0), 50);
+		return new InetSocketAddress(serverAddress, serverSocket.getLocalPort());
+	}
 
-  private Future<Handshake> doClientHandshake(
-      HandshakeCertificates client, InetSocketAddress serverAddress) {
-    return executorService.submit(() -> {
-      Socket rawSocket = SocketFactory.getDefault().createSocket();
-      rawSocket.connect(serverAddress);
-      SSLSocket sslSocket = null;
-      try {
-        sslSocket = (SSLSocket) client.sslSocketFactory().createSocket(rawSocket,
-            rawSocket.getInetAddress().getHostAddress(), rawSocket.getPort(), true /* autoClose */);
-        sslSocket.startHandshake();
-        return Handshake.get(sslSocket.getSession());
-      } finally {
-        closeQuietly(rawSocket);
-        if (sslSocket != null) {
-          closeQuietly(sslSocket);
-        }
-      }
-    });
-  }
+	private Future<Handshake> doServerHandshake(HandshakeCertificates server) {
+		return executorService.submit(() -> {
+			Socket rawSocket = null;
+			SSLSocket sslSocket = null;
+			try {
+				rawSocket = serverSocket.accept();
+				sslSocket = (SSLSocket) server.sslSocketFactory().createSocket(rawSocket,
+					rawSocket.getInetAddress().getHostAddress(), rawSocket.getPort(), true /* autoClose */);
+				sslSocket.setUseClientMode(false);
+				sslSocket.setWantClientAuth(true);
+				sslSocket.startHandshake();
+				return Handshake.get(sslSocket.getSession());
+			} finally {
+				if (rawSocket != null) {
+					closeQuietly(rawSocket);
+				}
+				if (sslSocket != null) {
+					closeQuietly(sslSocket);
+				}
+			}
+		});
+	}
 
-  private void assertPrivateKeysEquals(PrivateKey expected, PrivateKey actual) {
-    assertThat(ByteString.of(actual.getEncoded())).isEqualTo(
-        ByteString.of(expected.getEncoded()));
-  }
+	private Future<Handshake> doClientHandshake(
+		HandshakeCertificates client, InetSocketAddress serverAddress) {
+		return executorService.submit(() -> {
+			Socket rawSocket = SocketFactory.getDefault().createSocket();
+			rawSocket.connect(serverAddress);
+			SSLSocket sslSocket = null;
+			try {
+				sslSocket = (SSLSocket) client.sslSocketFactory().createSocket(rawSocket,
+					rawSocket.getInetAddress().getHostAddress(), rawSocket.getPort(), true /* autoClose */);
+				sslSocket.startHandshake();
+				return Handshake.get(sslSocket.getSession());
+			} finally {
+				closeQuietly(rawSocket);
+				if (sslSocket != null) {
+					closeQuietly(sslSocket);
+				}
+			}
+		});
+	}
 
-  public static String getPlatform() {
-    return System.getProperty("okhttp.platform", "platform");
-  }
+	private void assertPrivateKeysEquals(PrivateKey expected, PrivateKey actual) {
+		assertThat(ByteString.of(actual.getEncoded())).isEqualTo(
+			ByteString.of(expected.getEncoded()));
+	}
 }

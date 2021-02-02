@@ -30,35 +30,36 @@ package okhttp3
  * [rfc_6265_53]: https://tools.ietf.org/html/rfc6265#section-5.3
  */
 interface CookieJar {
-  /**
-   * Saves [cookies] from an HTTP response to this store according to this jar's policy.
-   *
-   * Note that this method may be called a second time for a single HTTP response if the response
-   * includes a trailer. For this obscure HTTP feature, [cookies] contains only the trailer's
-   * cookies.
-   */
-  fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>)
+   /**
+    * Saves [cookies] from an HTTP response to this store according to this jar's policy.
+    *
+    * Note that this method may be called a second time for a single HTTP response if the response
+    * includes a trailer. For this obscure HTTP feature, [cookies] contains only the trailer's
+    * cookies.
+    */
+   fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>)
 
-  /**
-   * Load cookies from the jar for an HTTP request to [url]. This method returns a possibly
-   * empty list of cookies for the network request.
-   *
-   * Simple implementations will return the accepted cookies that have not yet expired and that
-   * [match][Cookie.matches] [url].
-   */
-  fun loadForRequest(url: HttpUrl): List<Cookie>
+   /**
+    * Load cookies from the jar for an HTTP request to [url]. This method returns a possibly
+    * empty list of cookies for the network request.
+    *
+    * Simple implementations will return the accepted cookies that have not yet expired and that
+    * [match][Cookie.matches] [url].
+    */
+   fun loadForRequest(url: HttpUrl): List<Cookie>
 
-  companion object {
-    /** A cookie jar that never accepts any cookies. */
-    @JvmField
-    val NO_COOKIES: CookieJar = NoCookies()
-    private class NoCookies : CookieJar {
-      override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
+   companion object {
+      /** A cookie jar that never accepts any cookies. */
+      @JvmField
+      val NO_COOKIES: CookieJar = NoCookies()
+
+      private class NoCookies : CookieJar {
+         override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
+         }
+
+         override fun loadForRequest(url: HttpUrl): List<Cookie> {
+            return emptyList()
+         }
       }
-
-      override fun loadForRequest(url: HttpUrl): List<Cookie> {
-        return emptyList()
-      }
-    }
-  }
+   }
 }

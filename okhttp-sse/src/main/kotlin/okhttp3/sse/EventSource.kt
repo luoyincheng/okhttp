@@ -18,21 +18,21 @@ package okhttp3.sse
 import okhttp3.Request
 
 interface EventSource {
-  /** Returns the original request that initiated this event source. */
-  fun request(): Request
+   /** Returns the original request that initiated this event source. */
+   fun request(): Request
 
-  /**
-   * Immediately and violently release resources held by this event source. This does nothing if
-   * the event source has already been closed or canceled.
-   */
-  fun cancel()
+   /**
+    * Immediately and violently release resources held by this event source. This does nothing if
+    * the event source has already been closed or canceled.
+    */
+   fun cancel()
 
-  fun interface Factory {
-    /**
-     * Creates a new event source and immediately returns it. Creating an event source initiates an
-     * asynchronous process to connect the socket. Once that succeeds or fails, `listener` will be
-     * notified. The caller must cancel the returned event source when it is no longer in use.
-     */
-    fun newEventSource(request: Request, listener: EventSourceListener): EventSource
-  }
+   fun interface Factory {
+      /**
+       * Creates a new event source and immediately returns it. Creating an event source initiates an
+       * asynchronous process to connect the socket. Once that succeeds or fails, `listener` will be
+       * notified. The caller must cancel the returned event source when it is no longer in use.
+       */
+      fun newEventSource(request: Request, listener: EventSourceListener): EventSource
+   }
 }

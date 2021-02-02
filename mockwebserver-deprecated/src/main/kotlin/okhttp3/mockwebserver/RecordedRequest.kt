@@ -28,123 +28,123 @@ import java.net.Socket
 import javax.net.ssl.SSLSocket
 
 class RecordedRequest {
-  val requestLine: String
-  val headers: Headers
-  val chunkSizes: List<Int>
-  val bodySize: Long
-  val body: Buffer
-  val sequenceNumber: Int
-  val failure: IOException?
-  val method: String?
-  val path: String?
-  val handshake: Handshake?
-  val requestUrl: HttpUrl?
+   val requestLine: String
+   val headers: Headers
+   val chunkSizes: List<Int>
+   val bodySize: Long
+   val body: Buffer
+   val sequenceNumber: Int
+   val failure: IOException?
+   val method: String?
+   val path: String?
+   val handshake: Handshake?
+   val requestUrl: HttpUrl?
 
-  @get:JvmName("-deprecated_utf8Body")
-  @Deprecated(
+   @get:JvmName("-deprecated_utf8Body")
+   @Deprecated(
       message = "Use body.readUtf8()",
       replaceWith = ReplaceWith("body.readUtf8()"),
       level = DeprecationLevel.ERROR)
-  val utf8Body: String
-    get() = body.readUtf8()
+   val utf8Body: String
+      get() = body.readUtf8()
 
-  val tlsVersion: TlsVersion?
-    get() = handshake?.tlsVersion
+   val tlsVersion: TlsVersion?
+      get() = handshake?.tlsVersion
 
-  internal constructor(
-    requestLine: String,
-    headers: Headers,
-    chunkSizes: List<Int>,
-    bodySize: Long,
-    body: Buffer,
-    sequenceNumber: Int,
-    failure: IOException?,
-    method: String?,
-    path: String?,
-    handshake: Handshake?,
-    requestUrl: HttpUrl?
-  ) {
-    this.requestLine = requestLine
-    this.headers = headers
-    this.chunkSizes = chunkSizes
-    this.bodySize = bodySize
-    this.body = body
-    this.sequenceNumber = sequenceNumber
-    this.failure = failure
-    this.method = method
-    this.path = path
-    this.handshake = handshake
-    this.requestUrl = requestUrl
-  }
-
-  @JvmOverloads
-  constructor(
-    requestLine: String,
-    headers: Headers,
-    chunkSizes: List<Int>,
-    bodySize: Long,
-    body: Buffer,
-    sequenceNumber: Int,
-    socket: Socket,
-    failure: IOException? = null
-  ) {
-    this.requestLine = requestLine;
-    this.headers = headers
-    this.chunkSizes = chunkSizes
-    this.bodySize = bodySize
-    this.body = body
-    this.sequenceNumber = sequenceNumber
-    this.failure = failure
-
-    if (socket is SSLSocket) {
-      try {
-        this.handshake = socket.session.handshake()
-      } catch (e: IOException) {
-        throw IllegalArgumentException(e)
-      }
-    } else {
-      this.handshake = null
-    }
-
-    if (requestLine.isNotEmpty()) {
-      val methodEnd = requestLine.indexOf(' ')
-      val pathEnd = requestLine.indexOf(' ', methodEnd + 1)
-      this.method = requestLine.substring(0, methodEnd)
-      var path = requestLine.substring(methodEnd + 1, pathEnd)
-      if (!path.startsWith("/")) {
-        path = "/"
-      }
+   internal constructor(
+      requestLine: String,
+      headers: Headers,
+      chunkSizes: List<Int>,
+      bodySize: Long,
+      body: Buffer,
+      sequenceNumber: Int,
+      failure: IOException?,
+      method: String?,
+      path: String?,
+      handshake: Handshake?,
+      requestUrl: HttpUrl?
+   ) {
+      this.requestLine = requestLine
+      this.headers = headers
+      this.chunkSizes = chunkSizes
+      this.bodySize = bodySize
+      this.body = body
+      this.sequenceNumber = sequenceNumber
+      this.failure = failure
+      this.method = method
       this.path = path
+      this.handshake = handshake
+      this.requestUrl = requestUrl
+   }
 
-      val scheme = if (socket is SSLSocket) "https" else "http"
-      val inetAddress = socket.localAddress
+   @JvmOverloads
+   constructor(
+      requestLine: String,
+      headers: Headers,
+      chunkSizes: List<Int>,
+      bodySize: Long,
+      body: Buffer,
+      sequenceNumber: Int,
+      socket: Socket,
+      failure: IOException? = null
+   ) {
+      this.requestLine = requestLine;
+      this.headers = headers
+      this.chunkSizes = chunkSizes
+      this.bodySize = bodySize
+      this.body = body
+      this.sequenceNumber = sequenceNumber
+      this.failure = failure
 
-      var hostname = inetAddress.hostName
-      if (inetAddress is Inet6Address && hostname.contains(':')) {
-        // hostname is likely some form representing the IPv6 bytes
-        // 2001:0db8:85a3:0000:0000:8a2e:0370:7334
-        // 2001:db8:85a3::8a2e:370:7334
-        // ::1
-        hostname = "[$hostname]"
+      if (socket is SSLSocket) {
+         try {
+            this.handshake = socket.session.handshake()
+         } catch (e: IOException) {
+            throw IllegalArgumentException(e)
+         }
+      } else {
+         this.handshake = null
       }
 
-      val localPort = socket.localPort
-      // Allow null in failure case to allow for testing bad requests
-      this.requestUrl = "$scheme://$hostname:$localPort$path".toHttpUrlOrNull()
-    } else {
-      this.requestUrl = null
-      this.method = null
-      this.path = null
-    }
-  }
+      if (requestLine.isNotEmpty()) {
+         val methodEnd = requestLine.indexOf(' ')
+         val pathEnd = requestLine.indexOf(' ', methodEnd + 1)
+         this.method = requestLine.substring(0, methodEnd)
+         var path = requestLine.substring(methodEnd + 1, pathEnd)
+         if (!path.startsWith("/")) {
+            path = "/"
+         }
+         this.path = path
 
-  @Deprecated(
+         val scheme = if (socket is SSLSocket) "https" else "http"
+         val inetAddress = socket.localAddress
+
+         var hostname = inetAddress.hostName
+         if (inetAddress is Inet6Address && hostname.contains(':')) {
+            // hostname is likely some form representing the IPv6 bytes
+            // 2001:0db8:85a3:0000:0000:8a2e:0370:7334
+            // 2001:db8:85a3::8a2e:370:7334
+            // ::1
+            hostname = "[$hostname]"
+         }
+
+         val localPort = socket.localPort
+         // Allow null in failure case to allow for testing bad requests
+         this.requestUrl = "$scheme://$hostname:$localPort$path".toHttpUrlOrNull()
+      } else {
+         this.requestUrl = null
+         this.method = null
+         this.path = null
+      }
+   }
+
+   @Deprecated(
       message = "Use body.readUtf8()",
       replaceWith = ReplaceWith("body.readUtf8()"),
       level = DeprecationLevel.WARNING)
-  fun getUtf8Body(): String = body.readUtf8()
+   fun getUtf8Body(): String = body.readUtf8()
 
-  fun getHeader(name: String): String? = headers.values(name).firstOrNull()
+   fun getHeader(name: String): String? = headers.values(name).firstOrNull()
 
-  override fun toString(): String = requestLine
+   override fun toString(): String = requestLine
 }

@@ -22,12 +22,12 @@ import java.io.IOException
  * have been made with alternative protocols, none of which were successful.
  */
 class RouteException internal constructor(val firstConnectException: IOException) :
-    RuntimeException(firstConnectException) {
-  var lastConnectException: IOException = firstConnectException
-    private set
+   RuntimeException(firstConnectException) {
+   var lastConnectException: IOException = firstConnectException
+      private set
 
-  fun addConnectException(e: IOException) {
-    firstConnectException.addSuppressed(e)
-    lastConnectException = e
-  }
+   fun addConnectException(e: IOException) {
+      firstConnectException.addSuppressed(e)
+      lastConnectException = e
+   }
 }

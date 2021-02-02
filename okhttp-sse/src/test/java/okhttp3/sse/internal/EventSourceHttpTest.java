@@ -15,8 +15,17 @@
  */
 package okhttp3.sse.internal;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.RegisterExtension;
+
 import java.util.concurrent.TimeUnit;
+
 import javax.annotation.Nullable;
+
 import mockwebserver3.MockResponse;
 import mockwebserver3.MockWebServer;
 import mockwebserver3.junit5.internal.MockWebServerExtension;
@@ -26,142 +35,145 @@ import okhttp3.Request;
 import okhttp3.sse.EventSource;
 import okhttp3.sse.EventSources;
 import okhttp3.testing.PlatformRule;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.api.extension.RegisterExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @ExtendWith(MockWebServerExtension.class)
 @Tag("Slowish")
 public final class EventSourceHttpTest {
-  @RegisterExtension public final PlatformRule platform = new PlatformRule();
+	@RegisterExtension
+	public final PlatformRule platform = new PlatformRule();
+	@RegisterExtension
+	public final OkHttpClientTestRule clientTestRule = new OkHttpClientTestRule();
+	private final EventSourceRecorder listener = new EventSourceRecorder();
+	private MockWebServer server;
+	private OkHttpClient client = clientTestRule.newClient();
 
-  private MockWebServer server;
-  @RegisterExtension public final OkHttpClientTestRule clientTestRule = new OkHttpClientTestRule();
+	@BeforeEach
+	public void before(MockWebServer server) {
+		this.server = server;
+	}
 
-  private final EventSourceRecorder listener = new EventSourceRecorder();
-  private OkHttpClient client = clientTestRule.newClient();
+	@AfterEach
+	public void after() {
+		listener.assertExhausted();
+	}
 
-  @BeforeEach public void before(MockWebServer server) {
-    this.server = server;
-  }
+	@Test
+	public void event() {
+		server.enqueue(new MockResponse().setBody(""
+			+ "data: hey\n"
+			+ "\n").setHeader("content-type", "text/event-stream"));
 
-  @AfterEach public void after() {
-    listener.assertExhausted();
-  }
+		EventSource source = newEventSource();
 
-  @Test public void event() {
-    server.enqueue(new MockResponse().setBody(""
-        + "data: hey\n"
-        + "\n").setHeader("content-type", "text/event-stream"));
+		assertThat(source.request().url().encodedPath()).isEqualTo("/");
 
-    EventSource source = newEventSource();
+		listener.assertOpen();
+		listener.assertEvent(null, null, "hey");
+		listener.assertClose();
+	}
 
-    assertThat(source.request().url().encodedPath()).isEqualTo("/");
+	@Test
+	public void badContentType() {
+		server.enqueue(new MockResponse().setBody(""
+			+ "data: hey\n"
+			+ "\n").setHeader("content-type", "text/plain"));
 
-    listener.assertOpen();
-    listener.assertEvent(null, null, "hey");
-    listener.assertClose();
-  }
+		newEventSource();
+		listener.assertFailure("Invalid content-type: text/plain");
+	}
 
-  @Test public void badContentType() {
-    server.enqueue(new MockResponse().setBody(""
-        + "data: hey\n"
-        + "\n").setHeader("content-type", "text/plain"));
+	@Test
+	public void badResponseCode() {
+		server.enqueue(new MockResponse().setBody(""
+			+ "data: hey\n"
+			+ "\n").setHeader("content-type", "text/event-stream").setResponseCode(401));
 
-    newEventSource();
-    listener.assertFailure("Invalid content-type: text/plain");
-  }
+		newEventSource();
+		listener.assertFailure(null);
+	}
 
-  @Test public void badResponseCode() {
-    server.enqueue(new MockResponse().setBody(""
-        + "data: hey\n"
-        + "\n").setHeader("content-type", "text/event-stream").setResponseCode(401));
+	@Test
+	public void fullCallTimeoutDoesNotApplyOnceConnected() throws Exception {
+		client = client.newBuilder()
+			.callTimeout(250, TimeUnit.MILLISECONDS)
+			.build();
 
-    newEventSource();
-    listener.assertFailure(null);
-  }
+		server.enqueue(new MockResponse()
+			.setBodyDelay(500, TimeUnit.MILLISECONDS)
+			.setHeader("content-type", "text/event-stream")
+			.setBody("data: hey\n\n"));
 
-  @Test public void fullCallTimeoutDoesNotApplyOnceConnected() throws Exception {
-    client = client.newBuilder()
-        .callTimeout(250, TimeUnit.MILLISECONDS)
-        .build();
+		EventSource source = newEventSource();
 
-    server.enqueue(new MockResponse()
-        .setBodyDelay(500, TimeUnit.MILLISECONDS)
-        .setHeader("content-type", "text/event-stream")
-        .setBody("data: hey\n\n"));
+		assertThat(source.request().url().encodedPath()).isEqualTo("/");
 
-    EventSource source = newEventSource();
+		listener.assertOpen();
+		listener.assertEvent(null, null, "hey");
+		listener.assertClose();
+	}
 
-    assertThat(source.request().url().encodedPath()).isEqualTo("/");
+	@Test
+	public void fullCallTimeoutAppliesToSetup() throws Exception {
+		client = client.newBuilder()
+			.callTimeout(250, TimeUnit.MILLISECONDS)
+			.build();
 
-    listener.assertOpen();
-    listener.assertEvent(null, null, "hey");
-    listener.assertClose();
-  }
+		server.enqueue(new MockResponse()
+			.setHeadersDelay(500, TimeUnit.MILLISECONDS)
+			.setHeader("content-type", "text/event-stream")
+			.setBody("data: hey\n\n"));
 
-  @Test public void fullCallTimeoutAppliesToSetup() throws Exception {
-    client = client.newBuilder()
-        .callTimeout(250, TimeUnit.MILLISECONDS)
-        .build();
+		newEventSource();
+		listener.assertFailure("timeout");
+	}
 
-    server.enqueue(new MockResponse()
-        .setHeadersDelay(500, TimeUnit.MILLISECONDS)
-        .setHeader("content-type", "text/event-stream")
-        .setBody("data: hey\n\n"));
+	@Test
+	public void retainsAccept() throws InterruptedException {
+		server.enqueue(new MockResponse().setBody(""
+			+ "data: hey\n"
+			+ "\n").setHeader("content-type", "text/event-stream"));
 
-    newEventSource();
-    listener.assertFailure("timeout");
-  }
+		EventSource source = newEventSource("text/plain");
 
-  @Test public void retainsAccept() throws InterruptedException {
-    server.enqueue(new MockResponse().setBody(""
-        + "data: hey\n"
-        + "\n").setHeader("content-type", "text/event-stream"));
+		listener.assertOpen();
+		listener.assertEvent(null, null, "hey");
+		listener.assertClose();
 
-    EventSource source = newEventSource("text/plain");
+		assertThat(server.takeRequest().getHeader("Accept")).isEqualTo("text/plain");
+	}
 
-    listener.assertOpen();
-    listener.assertEvent(null, null, "hey");
-    listener.assertClose();
+	@Test
+	public void setsMissingAccept() throws InterruptedException {
+		server.enqueue(new MockResponse().setBody(""
+			+ "data: hey\n"
+			+ "\n").setHeader("content-type", "text/event-stream"));
 
-    assertThat(server.takeRequest().getHeader("Accept")).isEqualTo("text/plain");
-  }
+		EventSource source = newEventSource();
 
-  @Test public void setsMissingAccept() throws InterruptedException {
-    server.enqueue(new MockResponse().setBody(""
-        + "data: hey\n"
-        + "\n").setHeader("content-type", "text/event-stream"));
+		listener.assertOpen();
+		listener.assertEvent(null, null, "hey");
+		listener.assertClose();
 
-    EventSource source = newEventSource();
+		assertThat(server.takeRequest().getHeader("Accept")).isEqualTo("text/event-stream");
+	}
 
-    listener.assertOpen();
-    listener.assertEvent(null, null, "hey");
-    listener.assertClose();
+	private EventSource newEventSource() {
+		return newEventSource(null);
+	}
 
-    assertThat(server.takeRequest().getHeader("Accept")).isEqualTo("text/event-stream");
-  }
+	private EventSource newEventSource(@Nullable String accept) {
+		Request.Builder builder = new Request.Builder()
+			.url(server.url("/"));
 
-  private EventSource newEventSource() {
-    return newEventSource(null);
-  }
+		if (accept != null) {
+			builder.header("Accept", accept);
+		}
 
-  private EventSource newEventSource(@Nullable String accept) {
-    Request.Builder builder = new Request.Builder()
-        .url(server.url("/"));
-
-    if (accept != null) {
-      builder.header("Accept", accept);
-    }
-
-    Request request = builder
-        .build();
-    EventSource.Factory factory = EventSources.createFactory(client);
-    return factory.newEventSource(request, listener);
-  }
+		Request request = builder
+			.build();
+		EventSource.Factory factory = EventSources.createFactory(client);
+		return factory.newEventSource(request, listener);
+	}
 }

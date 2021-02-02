@@ -32,28 +32,30 @@ import org.junit.jupiter.api.Test
  * Baseline test if we ned to validate OkHttp behaviour against other popular clients.
  */
 class ApacheHttpClientTest {
-  private val httpClient = HttpClients.createDefault()
+   private val httpClient = HttpClients.createDefault()
 
-  @AfterEach fun tearDown() {
-    httpClient.close()
-  }
+   @AfterEach
+   fun tearDown() {
+      httpClient.close()
+   }
 
-  @Test fun get(server: MockWebServer) {
-    server.enqueue(MockResponse()
-        .setBody("hello, Apache HttpClient 5.x"))
+   @Test
+   fun get(server: MockWebServer) {
+      server.enqueue(MockResponse()
+         .setBody("hello, Apache HttpClient 5.x"))
 
-    val request = HttpGet(server.url("/").toUri())
-    request.addHeader("Accept", "text/plain")
+      val request = HttpGet(server.url("/").toUri())
+      request.addHeader("Accept", "text/plain")
 
-    httpClient.execute(request).use { response ->
-      assertThat(response.code).isEqualTo(200)
-      assertThat(EntityUtils.toString(response.entity)).isEqualTo("hello, Apache HttpClient 5.x")
-    }
+      httpClient.execute(request).use { response ->
+         assertThat(response.code).isEqualTo(200)
+         assertThat(EntityUtils.toString(response.entity)).isEqualTo("hello, Apache HttpClient 5.x")
+      }
 
-    val recorded = server.takeRequest()
-    assertThat(recorded.getHeader("Accept")).isEqualTo("text/plain")
-    assertThat(recorded.getHeader("Accept-Encoding")).isEqualTo("gzip, x-gzip, deflate")
-    assertThat(recorded.getHeader("Connection")).isEqualTo("keep-alive")
-    assertThat(recorded.getHeader("User-Agent")).startsWith("Apache-HttpClient/5.0")
-  }
+      val recorded = server.takeRequest()
+      assertThat(recorded.getHeader("Accept")).isEqualTo("text/plain")
+      assertThat(recorded.getHeader("Accept-Encoding")).isEqualTo("gzip, x-gzip, deflate")
+      assertThat(recorded.getHeader("Connection")).isEqualTo("keep-alive")
+      assertThat(recorded.getHeader("User-Agent")).startsWith("Apache-HttpClient/5.0")
+   }
 }

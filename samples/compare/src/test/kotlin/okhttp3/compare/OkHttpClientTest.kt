@@ -30,28 +30,31 @@ import org.junit.jupiter.api.extension.RegisterExtension
  * https://square.github.io/okhttp/
  */
 class OkHttpClientTest {
-  @JvmField @RegisterExtension val platform = PlatformRule()
+   @JvmField
+   @RegisterExtension
+   val platform = PlatformRule()
 
-  @Test fun get(server: MockWebServer) {
-    platform.assumeNotBouncyCastle()
+   @Test
+   fun get(server: MockWebServer) {
+      platform.assumeNotBouncyCastle()
 
-    server.enqueue(MockResponse()
-        .setBody("hello, OkHttp"))
+      server.enqueue(MockResponse()
+         .setBody("hello, OkHttp"))
 
-    val client = OkHttpClient()
+      val client = OkHttpClient()
 
-    val request = Request.Builder()
-        .url(server.url("/"))
-        .header("Accept", "text/plain")
-        .build()
-    val response = client.newCall(request).execute()
-    assertThat(response.code).isEqualTo(200)
-    assertThat(response.body!!.string()).isEqualTo("hello, OkHttp")
+      val request = Request.Builder()
+         .url(server.url("/"))
+         .header("Accept", "text/plain")
+         .build()
+      val response = client.newCall(request).execute()
+      assertThat(response.code).isEqualTo(200)
+      assertThat(response.body!!.string()).isEqualTo("hello, OkHttp")
 
-    val recorded = server.takeRequest()
-    assertThat(recorded.getHeader("Accept")).isEqualTo("text/plain")
-    assertThat(recorded.getHeader("Accept-Encoding")).isEqualTo("gzip")
-    assertThat(recorded.getHeader("Connection")).isEqualTo("Keep-Alive")
-    assertThat(recorded.getHeader("User-Agent")).matches("okhttp/.*")
-  }
+      val recorded = server.takeRequest()
+      assertThat(recorded.getHeader("Accept")).isEqualTo("text/plain")
+      assertThat(recorded.getHeader("Accept-Encoding")).isEqualTo("gzip")
+      assertThat(recorded.getHeader("Connection")).isEqualTo("Keep-Alive")
+      assertThat(recorded.getHeader("User-Agent")).matches("okhttp/.*")
+   }
 }

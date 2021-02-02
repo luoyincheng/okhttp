@@ -1,5 +1,7 @@
 {
-  "resources": [
-    {"pattern": "testlist.txt"}
-  ]
+   "resources": [
+      {
+         "pattern": "testlist.txt"
+      }
+   ]
 }

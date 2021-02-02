@@ -35,71 +35,73 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
 
 class AndroidSocketAdapterTest {
-  @RegisterExtension @JvmField val platform = PlatformRule.conscrypt()
+   @RegisterExtension
+   @JvmField
+   val platform = PlatformRule.conscrypt()
 
-  val context by lazy {
-    val provider: Provider = Conscrypt.newProviderBuilder().provideTrustManager(true).build()
+   val context by lazy {
+      val provider: Provider = Conscrypt.newProviderBuilder().provideTrustManager(true).build()
 
-    SSLContext.getInstance("TLS", provider).apply {
-      init(null, null, null)
-    }
-  }
+      SSLContext.getInstance("TLS", provider).apply {
+         init(null, null, null)
+      }
+   }
 
-  @ParameterizedTest
-  @MethodSource("data")
-  fun testMatchesSupportedSocket(adapter: SocketAdapter) {
-    val socketFactory = context.socketFactory
+   @ParameterizedTest
+   @MethodSource("data")
+   fun testMatchesSupportedSocket(adapter: SocketAdapter) {
+      val socketFactory = context.socketFactory
 
-    val sslSocket = socketFactory.createSocket() as SSLSocket
-    assertTrue(adapter.matchesSocket(sslSocket))
+      val sslSocket = socketFactory.createSocket() as SSLSocket
+      assertTrue(adapter.matchesSocket(sslSocket))
 
-    adapter.configureTlsExtensions(sslSocket, null, listOf(HTTP_2, HTTP_1_1))
-    // not connected
-    assertNull(adapter.getSelectedProtocol(sslSocket))
-  }
+      adapter.configureTlsExtensions(sslSocket, null, listOf(HTTP_2, HTTP_1_1))
+      // not connected
+      assertNull(adapter.getSelectedProtocol(sslSocket))
+   }
 
-  @ParameterizedTest
-  @MethodSource("data")
-  fun testMatchesSupportedAndroidSocketFactory(adapter: SocketAdapter) {
-    assumeTrue(adapter is StandardAndroidSocketAdapter)
+   @ParameterizedTest
+   @MethodSource("data")
+   fun testMatchesSupportedAndroidSocketFactory(adapter: SocketAdapter) {
+      assumeTrue(adapter is StandardAndroidSocketAdapter)
 
-    assertTrue(adapter.matchesSocketFactory(context.socketFactory))
-    assertNotNull(adapter.trustManager(context.socketFactory))
-  }
+      assertTrue(adapter.matchesSocketFactory(context.socketFactory))
+      assertNotNull(adapter.trustManager(context.socketFactory))
+   }
 
-  @ParameterizedTest
-  @MethodSource("data")
-  fun testDoesntMatchSupportedCustomSocketFactory(adapter: SocketAdapter) {
-    assumeFalse(adapter is StandardAndroidSocketAdapter)
+   @ParameterizedTest
+   @MethodSource("data")
+   fun testDoesntMatchSupportedCustomSocketFactory(adapter: SocketAdapter) {
+      assumeFalse(adapter is StandardAndroidSocketAdapter)
 
-    assertFalse(adapter.matchesSocketFactory(context.socketFactory))
-    assertNull(adapter.trustManager(context.socketFactory))
-  }
+      assertFalse(adapter.matchesSocketFactory(context.socketFactory))
+      assertNull(adapter.trustManager(context.socketFactory))
+   }
 
-  @ParameterizedTest
-  @MethodSource("data")
-  fun testCustomSocket(adapter: SocketAdapter) {
-    val socketFactory = DelegatingSSLSocketFactory(context.socketFactory)
+   @ParameterizedTest
+   @MethodSource("data")
+   fun testCustomSocket(adapter: SocketAdapter) {
+      val socketFactory = DelegatingSSLSocketFactory(context.socketFactory)
 
-    assertFalse(adapter.matchesSocketFactory(socketFactory))
+      assertFalse(adapter.matchesSocketFactory(socketFactory))
 
-    val sslSocket =
-        object : DelegatingSSLSocket(context.socketFactory.createSocket() as SSLSocket) {}
-    assertFalse(adapter.matchesSocket(sslSocket))
+      val sslSocket =
+         object : DelegatingSSLSocket(context.socketFactory.createSocket() as SSLSocket) {}
+      assertFalse(adapter.matchesSocket(sslSocket))
 
-    adapter.configureTlsExtensions(sslSocket, null, listOf(HTTP_2, HTTP_1_1))
-    // not connected
-    assertNull(adapter.getSelectedProtocol(sslSocket))
-  }
+      adapter.configureTlsExtensions(sslSocket, null, listOf(HTTP_2, HTTP_1_1))
+      // not connected
+      assertNull(adapter.getSelectedProtocol(sslSocket))
+   }
 
-  companion object {
-    @JvmStatic
-    fun data(): Collection<SocketAdapter> {
-      return listOfNotNull(
-          DeferredSocketAdapter(ConscryptSocketAdapter.factory),
-          DeferredSocketAdapter(AndroidSocketAdapter.factory("org.conscrypt")),
-          StandardAndroidSocketAdapter.buildIfSupported("org.conscrypt")
-      )
-    }
-  }
+   companion object {
+      @JvmStatic
+      fun data(): Collection<SocketAdapter> {
+         return listOfNotNull(
+            DeferredSocketAdapter(ConscryptSocketAdapter.factory),
+            DeferredSocketAdapter(AndroidSocketAdapter.factory("org.conscrypt")),
+            StandardAndroidSocketAdapter.buildIfSupported("org.conscrypt")
+         )
+      }
+   }
 }

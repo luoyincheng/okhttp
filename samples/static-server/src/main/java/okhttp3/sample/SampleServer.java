@@ -8,9 +8,11 @@ import java.io.InputStream;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.SecureRandom;
+
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
+
 import okhttp3.mockwebserver.Dispatcher;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
@@ -19,122 +21,123 @@ import okio.Buffer;
 import okio.Okio;
 
 public class SampleServer extends Dispatcher {
-  private final SSLContext sslContext;
-  private final String root;
-  private final int port;
+	private final SSLContext sslContext;
+	private final String root;
+	private final int port;
 
-  public SampleServer(SSLContext sslContext, String root, int port) {
-    this.sslContext = sslContext;
-    this.root = root;
-    this.port = port;
-  }
+	public SampleServer(SSLContext sslContext, String root, int port) {
+		this.sslContext = sslContext;
+		this.root = root;
+		this.port = port;
+	}
 
-  public void run() throws IOException {
-    MockWebServer server = new MockWebServer();
-    server.useHttps(sslContext.getSocketFactory(), false);
-    server.setDispatcher(this);
-    server.start(port);
-  }
+	public static void main(String[] args) throws Exception {
+		if (args.length != 4) {
+			System.out.println("Usage: SampleServer <keystore> <password> <root file> <port>");
+			return;
+		}
 
-  @Override public MockResponse dispatch(RecordedRequest request) {
-    String path = request.getPath();
-    try {
-      if (!path.startsWith("/") || path.contains("..")) throw new FileNotFoundException();
+		String keystoreFile = args[0];
+		String password = args[1];
+		String root = args[2];
+		int port = Integer.parseInt(args[3]);
 
-      File file = new File(root + path);
-      return file.isDirectory()
-          ? directoryToResponse(path, file)
-          : fileToResponse(path, file);
-    } catch (FileNotFoundException e) {
-      return new MockResponse()
-          .setStatus("HTTP/1.1 404")
-          .addHeader("content-type: text/plain; charset=utf-8")
-          .setBody("NOT FOUND: " + path);
-    } catch (IOException e) {
-      return new MockResponse()
-          .setStatus("HTTP/1.1 500")
-          .addHeader("content-type: text/plain; charset=utf-8")
-          .setBody("SERVER ERROR: " + e);
-    }
-  }
+		SSLContext sslContext = sslContext(keystoreFile, password);
+		SampleServer server = new SampleServer(sslContext, root, port);
+		server.run();
+	}
 
-  private MockResponse directoryToResponse(String basePath, File directory) {
-    if (!basePath.endsWith("/")) basePath += "/";
+	private static SSLContext sslContext(String keystoreFile, String password)
+		throws GeneralSecurityException, IOException {
+		KeyStore keystore = KeyStore.getInstance(KeyStore.getDefaultType());
+		try (InputStream in = new FileInputStream(keystoreFile)) {
+			keystore.load(in, password.toCharArray());
+		}
+		KeyManagerFactory keyManagerFactory =
+			KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+		keyManagerFactory.init(keystore, password.toCharArray());
 
-    StringBuilder response = new StringBuilder();
-    response.append(String.format("<html><head><title>%s</title></head><body>", basePath));
-    response.append(String.format("<h1>%s</h1>", basePath));
-    for (String file : directory.list()) {
-      response.append(String.format("<div class='file'><a href='%s'>%s</a></div>",
-          basePath + file, file));
-    }
-    response.append("</body></html>");
+		TrustManagerFactory trustManagerFactory =
+			TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+		trustManagerFactory.init(keystore);
 
-    return new MockResponse()
-        .setStatus("HTTP/1.1 200")
-        .addHeader("content-type: text/html; charset=utf-8")
-        .setBody(response.toString());
-  }
+		SSLContext sslContext = SSLContext.getInstance("TLS");
+		sslContext.init(
+			keyManagerFactory.getKeyManagers(),
+			trustManagerFactory.getTrustManagers(),
+			new SecureRandom());
 
-  private MockResponse fileToResponse(String path, File file) throws IOException {
-    return new MockResponse()
-        .setStatus("HTTP/1.1 200")
-        .setBody(fileToBytes(file))
-        .addHeader("content-type: " + contentType(path));
-  }
+		return sslContext;
+	}
 
-  private Buffer fileToBytes(File file) throws IOException {
-    Buffer result = new Buffer();
-    result.writeAll(Okio.source(file));
-    return result;
-  }
+	public void run() throws IOException {
+		MockWebServer server = new MockWebServer();
+		server.useHttps(sslContext.getSocketFactory(), false);
+		server.setDispatcher(this);
+		server.start(port);
+	}
 
-  private String contentType(String path) {
-    if (path.endsWith(".png")) return "image/png";
-    if (path.endsWith(".jpg")) return "image/jpeg";
-    if (path.endsWith(".jpeg")) return "image/jpeg";
-    if (path.endsWith(".gif")) return "image/gif";
-    if (path.endsWith(".html")) return "text/html; charset=utf-8";
-    if (path.endsWith(".txt")) return "text/plain; charset=utf-8";
-    return "application/octet-stream";
-  }
+	@Override
+	public MockResponse dispatch(RecordedRequest request) {
+		String path = request.getPath();
+		try {
+			if (!path.startsWith("/") || path.contains("..")) throw new FileNotFoundException();
 
-  public static void main(String[] args) throws Exception {
-    if (args.length != 4) {
-      System.out.println("Usage: SampleServer <keystore> <password> <root file> <port>");
-      return;
-    }
+			File file = new File(root + path);
+			return file.isDirectory()
+				? directoryToResponse(path, file)
+				: fileToResponse(path, file);
+		} catch (FileNotFoundException e) {
+			return new MockResponse()
+				.setStatus("HTTP/1.1 404")
+				.addHeader("content-type: text/plain; charset=utf-8")
+				.setBody("NOT FOUND: " + path);
+		} catch (IOException e) {
+			return new MockResponse()
+				.setStatus("HTTP/1.1 500")
+				.addHeader("content-type: text/plain; charset=utf-8")
+				.setBody("SERVER ERROR: " + e);
+		}
+	}
 
-    String keystoreFile = args[0];
-    String password = args[1];
-    String root = args[2];
-    int port = Integer.parseInt(args[3]);
+	private MockResponse directoryToResponse(String basePath, File directory) {
+		if (!basePath.endsWith("/")) basePath += "/";
 
-    SSLContext sslContext = sslContext(keystoreFile, password);
-    SampleServer server = new SampleServer(sslContext, root, port);
-    server.run();
-  }
+		StringBuilder response = new StringBuilder();
+		response.append(String.format("<html><head><title>%s</title></head><body>", basePath));
+		response.append(String.format("<h1>%s</h1>", basePath));
+		for (String file : directory.list()) {
+			response.append(String.format("<div class='file'><a href='%s'>%s</a></div>",
+				basePath + file, file));
+		}
+		response.append("</body></html>");
 
-  private static SSLContext sslContext(String keystoreFile, String password)
-      throws GeneralSecurityException, IOException {
-    KeyStore keystore = KeyStore.getInstance(KeyStore.getDefaultType());
-    try (InputStream in = new FileInputStream(keystoreFile)) {
-      keystore.load(in, password.toCharArray());
-    }
-    KeyManagerFactory keyManagerFactory =
-        KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-    keyManagerFactory.init(keystore, password.toCharArray());
+		return new MockResponse()
+			.setStatus("HTTP/1.1 200")
+			.addHeader("content-type: text/html; charset=utf-8")
+			.setBody(response.toString());
+	}
 
-    TrustManagerFactory trustManagerFactory =
-        TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-    trustManagerFactory.init(keystore);
+	private MockResponse fileToResponse(String path, File file) throws IOException {
+		return new MockResponse()
+			.setStatus("HTTP/1.1 200")
+			.setBody(fileToBytes(file))
+			.addHeader("content-type: " + contentType(path));
+	}
 
-    SSLContext sslContext = SSLContext.getInstance("TLS");
-    sslContext.init(
-        keyManagerFactory.getKeyManagers(),
-        trustManagerFactory.getTrustManagers(),
-        new SecureRandom());
+	private Buffer fileToBytes(File file) throws IOException {
+		Buffer result = new Buffer();
+		result.writeAll(Okio.source(file));
+		return result;
+	}
 
-    return sslContext;
-  }
+	private String contentType(String path) {
+		if (path.endsWith(".png")) return "image/png";
+		if (path.endsWith(".jpg")) return "image/jpeg";
+		if (path.endsWith(".jpeg")) return "image/jpeg";
+		if (path.endsWith(".gif")) return "image/gif";
+		if (path.endsWith(".html")) return "text/html; charset=utf-8";
+		if (path.endsWith(".txt")) return "text/plain; charset=utf-8";
+		return "application/octet-stream";
+	}
 }

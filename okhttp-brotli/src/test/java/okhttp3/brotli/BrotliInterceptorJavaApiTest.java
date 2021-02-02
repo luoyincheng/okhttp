@@ -19,9 +19,9 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 public class BrotliInterceptorJavaApiTest {
-  @Test
-  @Disabled("api only")
-  public void testApi() {
-    BrotliInterceptor.INSTANCE.intercept(null);
-  }
+	@Test
+	@Disabled("api only")
+	public void testApi() {
+		BrotliInterceptor.INSTANCE.intercept(null);
+	}
 }

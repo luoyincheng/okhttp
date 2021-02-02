@@ -26,26 +26,26 @@ import okhttp3.internal.concurrent.TaskRunner
 import okhttp3.internal.http2.Http2
 
 object OkHttpDebugLogging {
-  // Keep references to loggers to prevent their configuration from being GC'd.
-  private val configuredLoggers = CopyOnWriteArraySet<Logger>()
+   // Keep references to loggers to prevent their configuration from being GC'd.
+   private val configuredLoggers = CopyOnWriteArraySet<Logger>()
 
-  fun enableHttp2() = enable(Http2::class)
+   fun enableHttp2() = enable(Http2::class)
 
-  fun enableTaskRunner() = enable(TaskRunner::class)
+   fun enableTaskRunner() = enable(TaskRunner::class)
 
-  fun enable(loggerClass: String) {
-    val logger = Logger.getLogger(loggerClass)
-    if (configuredLoggers.add(logger)) {
-      logger.addHandler(ConsoleHandler().apply {
-        level = Level.FINE
-        formatter = object : SimpleFormatter() {
-          override fun format(record: LogRecord) =
-            String.format("[%1\$tF %1\$tT] %2\$s %n", record.millis, record.message)
-        }
-      })
-      logger.level = Level.FINEST
-    }
-  }
+   fun enable(loggerClass: String) {
+      val logger = Logger.getLogger(loggerClass)
+      if (configuredLoggers.add(logger)) {
+         logger.addHandler(ConsoleHandler().apply {
+            level = Level.FINE
+            formatter = object : SimpleFormatter() {
+               override fun format(record: LogRecord) =
+                  String.format("[%1\$tF %1\$tT] %2\$s %n", record.millis, record.message)
+            }
+         })
+         logger.level = Level.FINEST
+      }
+   }
 
-  fun enable(loggerClass: KClass<*>) = enable(loggerClass.java.name)
+   fun enable(loggerClass: KClass<*>) = enable(loggerClass.java.name)
 }

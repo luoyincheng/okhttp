@@ -25,22 +25,22 @@ import org.junit.jupiter.api.Assertions.assertTrue
 
 /** A duplex request body that keeps the provided sinks so they can be written to later.  */
 class AsyncRequestBody : RequestBody() {
-  private val requestBodySinks: BlockingQueue<BufferedSink> = LinkedBlockingQueue()
+   private val requestBodySinks: BlockingQueue<BufferedSink> = LinkedBlockingQueue()
 
-  override fun contentType(): MediaType? = null
+   override fun contentType(): MediaType? = null
 
-  override fun writeTo(sink: BufferedSink) {
-    requestBodySinks.add(sink)
-  }
+   override fun writeTo(sink: BufferedSink) {
+      requestBodySinks.add(sink)
+   }
 
-  override fun isDuplex(): Boolean = true
+   override fun isDuplex(): Boolean = true
 
-  @Throws(InterruptedException::class)
-  fun takeSink(): BufferedSink {
-    return requestBodySinks.poll(5, SECONDS) ?: throw AssertionError("no sink to take")
-  }
+   @Throws(InterruptedException::class)
+   fun takeSink(): BufferedSink {
+      return requestBodySinks.poll(5, SECONDS) ?: throw AssertionError("no sink to take")
+   }
 
-  fun assertNoMoreSinks() {
-    assertTrue(requestBodySinks.isEmpty())
-  }
+   fun assertNoMoreSinks() {
+      assertTrue(requestBodySinks.isEmpty())
+   }
 }

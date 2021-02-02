@@ -18,29 +18,29 @@ package okhttp3
 import okio.BufferedSource
 
 open class ForwardingResponseBody(delegate: ResponseBody?) : ResponseBody() {
-  private val delegate: ResponseBody
-  fun delegate(): ResponseBody {
-    return delegate
-  }
+   private val delegate: ResponseBody
+   fun delegate(): ResponseBody {
+      return delegate
+   }
 
-  override fun contentType(): MediaType? {
-    return delegate.contentType()
-  }
+   override fun contentType(): MediaType? {
+      return delegate.contentType()
+   }
 
-  override fun contentLength(): Long {
-    return delegate.contentLength()
-  }
+   override fun contentLength(): Long {
+      return delegate.contentLength()
+   }
 
-  override fun source(): BufferedSource {
-    return delegate.source()
-  }
+   override fun source(): BufferedSource {
+      return delegate.source()
+   }
 
-  override fun toString(): String {
-    return javaClass.simpleName + "(" + delegate.toString() + ")"
-  }
+   override fun toString(): String {
+      return javaClass.simpleName + "(" + delegate.toString() + ")"
+   }
 
-  init {
-    requireNotNull(delegate) { "delegate == null" }
-    this.delegate = delegate
-  }
+   init {
+      requireNotNull(delegate) { "delegate == null" }
+      this.delegate = delegate
+   }
 }

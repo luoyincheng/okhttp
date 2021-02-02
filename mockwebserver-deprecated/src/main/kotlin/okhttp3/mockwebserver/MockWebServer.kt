@@ -29,190 +29,194 @@ import javax.net.ServerSocketFactory
 import javax.net.ssl.SSLSocketFactory
 
 class MockWebServer : ExternalResource(), Closeable {
-  val delegate = mockwebserver3.MockWebServer()
+   val delegate = mockwebserver3.MockWebServer()
 
-  val requestCount: Int by delegate::requestCount
+   val requestCount: Int by delegate::requestCount
 
-  var bodyLimit: Long by delegate::bodyLimit
+   var bodyLimit: Long by delegate::bodyLimit
 
-  var serverSocketFactory: ServerSocketFactory? by delegate::serverSocketFactory
+   var serverSocketFactory: ServerSocketFactory? by delegate::serverSocketFactory
 
-  var dispatcher: Dispatcher = QueueDispatcher()
-    set(value) {
-      field = value
-      delegate.dispatcher = value.wrap()
-    }
+   var dispatcher: Dispatcher = QueueDispatcher()
+      set(value) {
+         field = value
+         delegate.dispatcher = value.wrap()
+      }
 
-  val port: Int
-    get() {
-      before() // This implicitly starts the delegate.
-      return delegate.port
-    }
+   val port: Int
+      get() {
+         before() // This implicitly starts the delegate.
+         return delegate.port
+      }
 
-  val hostName: String
-    get() {
-      before() // This implicitly starts the delegate.
-      return delegate.hostName
-    }
+   val hostName: String
+      get() {
+         before() // This implicitly starts the delegate.
+         return delegate.hostName
+      }
 
-  var protocolNegotiationEnabled: Boolean by delegate::protocolNegotiationEnabled
+   var protocolNegotiationEnabled: Boolean by delegate::protocolNegotiationEnabled
 
-  @get:JvmName("protocols") var protocols: List<Protocol>
-    get() = delegate.protocols
-    set(value) {
-      delegate.protocols = value
-    }
+   @get:JvmName("protocols")
+   var protocols: List<Protocol>
+      get() = delegate.protocols
+      set(value) {
+         delegate.protocols = value
+      }
 
-  init {
-    delegate.dispatcher = dispatcher.wrap()
-  }
+   init {
+      delegate.dispatcher = dispatcher.wrap()
+   }
 
-  private var started: Boolean = false
+   private var started: Boolean = false
 
-  @Synchronized override fun before() {
-    if (started) return
-    try {
-      start()
-    } catch (e: IOException) {
-      throw RuntimeException(e)
-    }
-  }
+   @Synchronized
+   override fun before() {
+      if (started) return
+      try {
+         start()
+      } catch (e: IOException) {
+         throw RuntimeException(e)
+      }
+   }
 
-  @JvmName("-deprecated_port")
-  @Deprecated(
+   @JvmName("-deprecated_port")
+   @Deprecated(
       message = "moved to val",
       replaceWith = ReplaceWith(expression = "port"),
       level = DeprecationLevel.ERROR)
-  fun getPort(): Int = port
+   fun getPort(): Int = port
 
-  fun toProxyAddress(): Proxy {
-    before() // This implicitly starts the delegate.
-    return delegate.toProxyAddress()
-  }
+   fun toProxyAddress(): Proxy {
+      before() // This implicitly starts the delegate.
+      return delegate.toProxyAddress()
+   }
 
-  @JvmName("-deprecated_serverSocketFactory")
-  @Deprecated(
+   @JvmName("-deprecated_serverSocketFactory")
+   @Deprecated(
       message = "moved to var",
       replaceWith = ReplaceWith(
-          expression = "run { this.serverSocketFactory = serverSocketFactory }"
+         expression = "run { this.serverSocketFactory = serverSocketFactory }"
       ),
       level = DeprecationLevel.ERROR)
-  fun setServerSocketFactory(serverSocketFactory: ServerSocketFactory) {
-    delegate.serverSocketFactory = serverSocketFactory
-  }
+   fun setServerSocketFactory(serverSocketFactory: ServerSocketFactory) {
+      delegate.serverSocketFactory = serverSocketFactory
+   }
 
-  fun url(path: String): HttpUrl {
-    before() // This implicitly starts the delegate.
-    return delegate.url(path)
-  }
+   fun url(path: String): HttpUrl {
+      before() // This implicitly starts the delegate.
+      return delegate.url(path)
+   }
 
-  @JvmName("-deprecated_bodyLimit")
-  @Deprecated(
+   @JvmName("-deprecated_bodyLimit")
+   @Deprecated(
       message = "moved to var",
       replaceWith = ReplaceWith(
-          expression = "run { this.bodyLimit = bodyLimit }"
+         expression = "run { this.bodyLimit = bodyLimit }"
       ),
       level = DeprecationLevel.ERROR)
-  fun setBodyLimit(bodyLimit: Long) {
-    delegate.bodyLimit = bodyLimit
-  }
+   fun setBodyLimit(bodyLimit: Long) {
+      delegate.bodyLimit = bodyLimit
+   }
 
-  @JvmName("-deprecated_protocolNegotiationEnabled")
-  @Deprecated(
+   @JvmName("-deprecated_protocolNegotiationEnabled")
+   @Deprecated(
       message = "moved to var",
       replaceWith = ReplaceWith(
-          expression = "run { this.protocolNegotiationEnabled = protocolNegotiationEnabled }"
+         expression = "run { this.protocolNegotiationEnabled = protocolNegotiationEnabled }"
       ),
       level = DeprecationLevel.ERROR)
-  fun setProtocolNegotiationEnabled(protocolNegotiationEnabled: Boolean) {
-    delegate.protocolNegotiationEnabled = protocolNegotiationEnabled
-  }
+   fun setProtocolNegotiationEnabled(protocolNegotiationEnabled: Boolean) {
+      delegate.protocolNegotiationEnabled = protocolNegotiationEnabled
+   }
 
-  @JvmName("-deprecated_protocols")
-  @Deprecated(
+   @JvmName("-deprecated_protocols")
+   @Deprecated(
       message = "moved to var",
       replaceWith = ReplaceWith(expression = "run { this.protocols = protocols }"),
       level = DeprecationLevel.ERROR)
-  fun setProtocols(protocols: List<Protocol>) {
-    delegate.protocols = protocols
-  }
+   fun setProtocols(protocols: List<Protocol>) {
+      delegate.protocols = protocols
+   }
 
-  @JvmName("-deprecated_protocols")
-  @Deprecated(
+   @JvmName("-deprecated_protocols")
+   @Deprecated(
       message = "moved to var",
       replaceWith = ReplaceWith(expression = "protocols"),
       level = DeprecationLevel.ERROR)
-  fun protocols(): List<Protocol> = delegate.protocols
+   fun protocols(): List<Protocol> = delegate.protocols
 
-  fun useHttps(sslSocketFactory: SSLSocketFactory, tunnelProxy: Boolean) {
-    delegate.useHttps(sslSocketFactory, tunnelProxy)
-  }
+   fun useHttps(sslSocketFactory: SSLSocketFactory, tunnelProxy: Boolean) {
+      delegate.useHttps(sslSocketFactory, tunnelProxy)
+   }
 
-  fun noClientAuth() {
-    delegate.noClientAuth()
-  }
+   fun noClientAuth() {
+      delegate.noClientAuth()
+   }
 
-  fun requestClientAuth() {
-    delegate.requestClientAuth()
-  }
+   fun requestClientAuth() {
+      delegate.requestClientAuth()
+   }
 
-  fun requireClientAuth() {
-    delegate.requireClientAuth()
-  }
+   fun requireClientAuth() {
+      delegate.requireClientAuth()
+   }
 
-  @Throws(InterruptedException::class)
-  fun takeRequest(): RecordedRequest {
-    return delegate.takeRequest().unwrap()
-  }
+   @Throws(InterruptedException::class)
+   fun takeRequest(): RecordedRequest {
+      return delegate.takeRequest().unwrap()
+   }
 
-  @Throws(InterruptedException::class)
-  fun takeRequest(timeout: Long, unit: TimeUnit): RecordedRequest? {
-    return delegate.takeRequest(timeout, unit)?.unwrap()
-  }
+   @Throws(InterruptedException::class)
+   fun takeRequest(timeout: Long, unit: TimeUnit): RecordedRequest? {
+      return delegate.takeRequest(timeout, unit)?.unwrap()
+   }
 
-  @JvmName("-deprecated_requestCount")
-  @Deprecated(
+   @JvmName("-deprecated_requestCount")
+   @Deprecated(
       message = "moved to val",
       replaceWith = ReplaceWith(expression = "requestCount"),
       level = DeprecationLevel.ERROR)
-  fun getRequestCount(): Int = delegate.requestCount
+   fun getRequestCount(): Int = delegate.requestCount
 
-  fun enqueue(response: MockResponse) {
-    delegate.enqueue(response.wrap())
-  }
+   fun enqueue(response: MockResponse) {
+      delegate.enqueue(response.wrap())
+   }
 
-  @Throws(IOException::class)
-  @JvmOverloads fun start(port: Int = 0) {
-    started = true
-    delegate.start(port)
-  }
+   @Throws(IOException::class)
+   @JvmOverloads
+   fun start(port: Int = 0) {
+      started = true
+      delegate.start(port)
+   }
 
-  @Throws(IOException::class)
-  fun start(inetAddress: InetAddress, port: Int) {
-    started = true
-    delegate.start(inetAddress, port)
-  }
+   @Throws(IOException::class)
+   fun start(inetAddress: InetAddress, port: Int) {
+      started = true
+      delegate.start(inetAddress, port)
+   }
 
-  @Synchronized
-  @Throws(IOException::class)
-  fun shutdown() {
-    delegate.shutdown()
-  }
+   @Synchronized
+   @Throws(IOException::class)
+   fun shutdown() {
+      delegate.shutdown()
+   }
 
-  @Synchronized override fun after() {
-    try {
-      shutdown()
-    } catch (e: IOException) {
-      logger.log(Level.WARNING, "MockWebServer shutdown failed", e)
-    }
-  }
+   @Synchronized
+   override fun after() {
+      try {
+         shutdown()
+      } catch (e: IOException) {
+         logger.log(Level.WARNING, "MockWebServer shutdown failed", e)
+      }
+   }
 
-  override fun toString(): String = delegate.toString()
+   override fun toString(): String = delegate.toString()
 
-  @Throws(IOException::class)
-  override fun close() = delegate.close()
+   @Throws(IOException::class)
+   override fun close() = delegate.close()
 
-  companion object {
-    private val logger = Logger.getLogger(MockWebServer::class.java.name)
-  }
+   companion object {
+      private val logger = Logger.getLogger(MockWebServer::class.java.name)
+   }
 }

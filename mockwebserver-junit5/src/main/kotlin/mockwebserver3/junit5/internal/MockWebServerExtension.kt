@@ -30,79 +30,79 @@ import org.junit.jupiter.api.extension.ParameterResolver
 
 /** Runs MockWebServer for the duration of a single test method. */
 class MockWebServerExtension
-  : BeforeAllCallback, BeforeEachCallback, AfterAllCallback, AfterEachCallback, ParameterResolver {
-  private val ExtensionContext.resource: Resource
-    get() {
-      val store = getStore(namespace)
-      var result = store.get(uniqueId) as Resource?
-      if (result == null) {
-        result = Resource()
-        store.put(uniqueId, result)
+   : BeforeAllCallback, BeforeEachCallback, AfterAllCallback, AfterEachCallback, ParameterResolver {
+   private val ExtensionContext.resource: Resource
+      get() {
+         val store = getStore(namespace)
+         var result = store.get(uniqueId) as Resource?
+         if (result == null) {
+            result = Resource()
+            store.put(uniqueId, result)
+         }
+         return result
       }
-      return result
-    }
 
-  private class Resource {
-    private val servers = mutableListOf<MockWebServer>()
-    private var started = false
+   private class Resource {
+      private val servers = mutableListOf<MockWebServer>()
+      private var started = false
 
-    fun newServer(): MockWebServer {
-      return MockWebServer()
-        .also { result ->
-          if (started) result.start()
-          servers += result
-        }
-    }
-
-    fun startAll() {
-      started = true
-      for (server in servers) {
-        server.start()
+      fun newServer(): MockWebServer {
+         return MockWebServer()
+            .also { result ->
+               if (started) result.start()
+               servers += result
+            }
       }
-    }
 
-    fun shutdownAll() {
-      try {
-        for (server in servers) {
-          server.shutdown()
-        }
-      } catch (e: IOException) {
-        logger.log(Level.WARNING, "MockWebServer shutdown failed", e)
+      fun startAll() {
+         started = true
+         for (server in servers) {
+            server.start()
+         }
       }
-    }
-  }
 
-  @IgnoreJRERequirement
-  override fun supportsParameter(
-    parameterContext: ParameterContext,
-    extensionContext: ExtensionContext
-  ): Boolean = parameterContext.parameter.type === MockWebServer::class.java
+      fun shutdownAll() {
+         try {
+            for (server in servers) {
+               server.shutdown()
+            }
+         } catch (e: IOException) {
+            logger.log(Level.WARNING, "MockWebServer shutdown failed", e)
+         }
+      }
+   }
 
-  override fun resolveParameter(
-    parameterContext: ParameterContext,
-    extensionContext: ExtensionContext
-  ): Any = extensionContext.resource.newServer()
+   @IgnoreJRERequirement
+   override fun supportsParameter(
+      parameterContext: ParameterContext,
+      extensionContext: ExtensionContext
+   ): Boolean = parameterContext.parameter.type === MockWebServer::class.java
 
-  /** Start the servers passed in as test class constructor parameters. */
-  override fun beforeAll(context: ExtensionContext) {
-    context.resource.startAll()
-  }
+   override fun resolveParameter(
+      parameterContext: ParameterContext,
+      extensionContext: ExtensionContext
+   ): Any = extensionContext.resource.newServer()
 
-  /** Start the servers passed in as test method parameters. */
-  override fun beforeEach(context: ExtensionContext) {
-    context.resource.startAll()
-  }
+   /** Start the servers passed in as test class constructor parameters. */
+   override fun beforeAll(context: ExtensionContext) {
+      context.resource.startAll()
+   }
 
-  override fun afterEach(context: ExtensionContext) {
-    context.resource.shutdownAll()
-  }
+   /** Start the servers passed in as test method parameters. */
+   override fun beforeEach(context: ExtensionContext) {
+      context.resource.startAll()
+   }
 
-  override fun afterAll(context: ExtensionContext) {
-    context.resource.shutdownAll()
-  }
+   override fun afterEach(context: ExtensionContext) {
+      context.resource.shutdownAll()
+   }
 
-  companion object {
-    private val logger = Logger.getLogger(MockWebServerExtension::class.java.name)
-    private val namespace = ExtensionContext.Namespace.create(MockWebServerExtension::class.java)
-  }
+   override fun afterAll(context: ExtensionContext) {
+      context.resource.shutdownAll()
+   }
+
+   companion object {
+      private val logger = Logger.getLogger(MockWebServerExtension::class.java.name)
+      private val namespace = ExtensionContext.Namespace.create(MockWebServerExtension::class.java)
+   }
 }

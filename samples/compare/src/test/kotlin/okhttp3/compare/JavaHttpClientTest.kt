@@ -34,34 +34,37 @@ import org.junit.jupiter.api.extension.RegisterExtension
  * Baseline test if we ned to validate OkHttp behaviour against other popular clients.
  */
 class JavaHttpClientTest {
-  @JvmField @RegisterExtension val platform = PlatformRule()
+   @JvmField
+   @RegisterExtension
+   val platform = PlatformRule()
 
-  @Test fun get(server: MockWebServer) {
-    // Not available
-    platform.expectFailureOnJdkVersion(8)
+   @Test
+   fun get(server: MockWebServer) {
+      // Not available
+      platform.expectFailureOnJdkVersion(8)
 
-    val httpClient = HttpClient.newBuilder()
-      .followRedirects(NORMAL)
-      .build()
+      val httpClient = HttpClient.newBuilder()
+         .followRedirects(NORMAL)
+         .build()
 
-    server.enqueue(MockResponse()
-        .setBody("hello, Java HTTP Client"))
+      server.enqueue(MockResponse()
+         .setBody("hello, Java HTTP Client"))
 
-    val request = HttpRequest.newBuilder(server.url("/").toUri())
-        .header("Accept", "text/plain")
-        .build()
+      val request = HttpRequest.newBuilder(server.url("/").toUri())
+         .header("Accept", "text/plain")
+         .build()
 
-    val response = httpClient.send(request, BodyHandlers.ofString())
-    assertThat(response.statusCode()).isEqualTo(200)
-    assertThat(response.body()).isEqualTo("hello, Java HTTP Client")
+      val response = httpClient.send(request, BodyHandlers.ofString())
+      assertThat(response.statusCode()).isEqualTo(200)
+      assertThat(response.body()).isEqualTo("hello, Java HTTP Client")
 
-    val recorded = server.takeRequest()
-    assertThat(recorded.getHeader("Accept")).isEqualTo("text/plain")
-    assertThat(recorded.getHeader("Accept-Encoding")).isNull() // No built-in gzip.
-    assertThat(recorded.getHeader("Connection")).isEqualTo("Upgrade, HTTP2-Settings")
-    assertThat(recorded.getHeader("Content-Length")).isEqualTo("0")
-    assertThat(recorded.getHeader("HTTP2-Settings")).isNotNull()
-    assertThat(recorded.getHeader("Upgrade")).isEqualTo("h2c") // HTTP/2 over plaintext!
-    assertThat(recorded.getHeader("User-Agent")).matches("Java-http-client/.*")
-  }
+      val recorded = server.takeRequest()
+      assertThat(recorded.getHeader("Accept")).isEqualTo("text/plain")
+      assertThat(recorded.getHeader("Accept-Encoding")).isNull() // No built-in gzip.
+      assertThat(recorded.getHeader("Connection")).isEqualTo("Upgrade, HTTP2-Settings")
+      assertThat(recorded.getHeader("Content-Length")).isEqualTo("0")
+      assertThat(recorded.getHeader("HTTP2-Settings")).isNotNull()
+      assertThat(recorded.getHeader("Upgrade")).isEqualTo("h2c") // HTTP/2 over plaintext!
+      assertThat(recorded.getHeader("User-Agent")).matches("Java-http-client/.*")
+   }
 }

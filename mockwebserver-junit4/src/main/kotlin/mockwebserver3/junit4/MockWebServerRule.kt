@@ -38,25 +38,25 @@ import java.util.logging.Logger
  * ```
  */
 class MockWebServerRule : ExternalResource() {
-  val server: MockWebServer = MockWebServer()
+   val server: MockWebServer = MockWebServer()
 
-  override fun before() {
-    try {
-      server.start()
-    } catch (e: IOException) {
-      throw RuntimeException(e)
-    }
-  }
+   override fun before() {
+      try {
+         server.start()
+      } catch (e: IOException) {
+         throw RuntimeException(e)
+      }
+   }
 
-  override fun after() {
-    try {
-      server.shutdown()
-    } catch (e: IOException) {
-      logger.log(Level.WARNING, "MockWebServer shutdown failed", e)
-    }
-  }
+   override fun after() {
+      try {
+         server.shutdown()
+      } catch (e: IOException) {
+         logger.log(Level.WARNING, "MockWebServer shutdown failed", e)
+      }
+   }
 
-  companion object {
-    private val logger = Logger.getLogger(MockWebServerRule::class.java.name)
-  }
+   companion object {
+      private val logger = Logger.getLogger(MockWebServerRule::class.java.name)
+   }
 }

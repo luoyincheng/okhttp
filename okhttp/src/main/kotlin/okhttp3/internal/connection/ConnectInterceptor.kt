@@ -26,11 +26,11 @@ import okhttp3.internal.http.RealInterceptorChain
  * be used for the returned response, or to validate a cached response with a conditional GET.
  */
 object ConnectInterceptor : Interceptor {
-  @Throws(IOException::class)
-  override fun intercept(chain: Interceptor.Chain): Response {
-    val realChain = chain as RealInterceptorChain
-    val exchange = realChain.call.initExchange(chain)
-    val connectedChain = realChain.copy(exchange = exchange)
-    return connectedChain.proceed(realChain.request)
-  }
+   @Throws(IOException::class)
+   override fun intercept(chain: Interceptor.Chain): Response {
+      val realChain = chain as RealInterceptorChain
+      val exchange = realChain.call.initExchange(chain)
+      val connectedChain = realChain.copy(exchange = exchange)
+      return connectedChain.proceed(realChain.request)
+   }
 }

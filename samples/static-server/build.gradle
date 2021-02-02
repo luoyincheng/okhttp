@@ -1,19 +1,19 @@
 apply plugin: 'com.github.johnrengelman.shadow'
 
 tasks.withType(JavaCompile) {
-  options.warnings = false
+   options.warnings = false
 }
 
 jar {
-  manifest {
-    attributes 'Main-Class': 'okhttp3.sample.SampleServer'
-  }
+   manifest {
+      attributes 'Main-Class': 'okhttp3.sample.SampleServer'
+   }
 }
 
 dependencies {
-  implementation project(':mockwebserver-deprecated')
+   implementation project(':mockwebserver-deprecated')
 }
 
 shadowJar {
-  mergeServiceFiles()
+   mergeServiceFiles()
 }

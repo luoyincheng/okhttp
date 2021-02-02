@@ -25,46 +25,48 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ArgumentsSource
 
 class SampleTest {
-  @JvmField @RegisterExtension val clientRule = OkHttpClientTestRule()
+   @JvmField
+   @RegisterExtension
+   val clientRule = OkHttpClientTestRule()
 
-  @Test
-  fun passingTest() {
-    assertThat("hello").isEqualTo("hello")
-  }
+   @Test
+   fun passingTest() {
+      assertThat("hello").isEqualTo("hello")
+   }
 
-  @Test
-  fun testMockWebServer(server: MockWebServer) {
-    server.enqueue(MockResponse().setBody("abc"))
+   @Test
+   fun testMockWebServer(server: MockWebServer) {
+      server.enqueue(MockResponse().setBody("abc"))
 
-    val client = clientRule.newClient()
+      val client = clientRule.newClient()
 
-    client.newCall(Request.Builder().url(server.url("/")).build()).execute().use {
-      assertThat(it.body!!.string()).isEqualTo("abc")
-    }
-  }
+      client.newCall(Request.Builder().url(server.url("/")).build()).execute().use {
+         assertThat(it.body!!.string()).isEqualTo("abc")
+      }
+   }
 
-  @Test
-  fun testExternalSite() {
-    val client = clientRule.newClient()
+   @Test
+   fun testExternalSite() {
+      val client = clientRule.newClient()
 
-    client.newCall(Request.Builder().url("https://google.com/robots.txt").build()).execute().use {
-      assertThat(it.code).isEqualTo(200)
-    }
-  }
+      client.newCall(Request.Builder().url("https://google.com/robots.txt").build()).execute().use {
+         assertThat(it.code).isEqualTo(200)
+      }
+   }
 
-  @Test
-  fun testPublicSuffixes() {
-    PublicSuffixDatabase::class.java.getResourceAsStream(PublicSuffixDatabase.PUBLIC_SUFFIX_RESOURCE).use {
-      assertThat(it.available()).isGreaterThan(30000)
-    }
-  }
+   @Test
+   fun testPublicSuffixes() {
+      PublicSuffixDatabase::class.java.getResourceAsStream(PublicSuffixDatabase.PUBLIC_SUFFIX_RESOURCE).use {
+         assertThat(it.available()).isGreaterThan(30000)
+      }
+   }
 
-  @ParameterizedTest
-  @ArgumentsSource(SampleTestProvider::class)
-  fun testParams(mode: String) {
-  }
+   @ParameterizedTest
+   @ArgumentsSource(SampleTestProvider::class)
+   fun testParams(mode: String) {
+   }
 }
 
-class SampleTestProvider: SimpleProvider() {
-  override fun arguments() = listOf("A", "B")
+class SampleTestProvider : SimpleProvider() {
+   override fun arguments() = listOf("A", "B")
 }

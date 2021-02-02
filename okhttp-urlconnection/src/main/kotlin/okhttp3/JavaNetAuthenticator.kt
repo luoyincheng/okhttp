@@ -24,7 +24,7 @@ import okhttp3.Authenticator.Companion.JAVA_NET_AUTHENTICATOR
  * [okhttp3.OkHttpClient.Builder.authenticator] or [okhttp3.OkHttpClient.Builder.proxyAuthenticator].
  */
 class JavaNetAuthenticator : okhttp3.Authenticator {
-  @Throws(IOException::class)
-  override fun authenticate(route: Route?, response: Response): Request? =
-    JAVA_NET_AUTHENTICATOR.authenticate(route, response)
+   @Throws(IOException::class)
+   override fun authenticate(route: Route?, response: Response): Request? =
+      JAVA_NET_AUTHENTICATOR.authenticate(route, response)
 }

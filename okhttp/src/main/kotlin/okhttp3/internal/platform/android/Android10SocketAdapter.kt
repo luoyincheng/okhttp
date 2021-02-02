@@ -34,43 +34,43 @@ import okhttp3.internal.platform.Platform.Companion.isAndroid
 @SuppressLint("NewApi")
 @SuppressSignatureCheck
 class Android10SocketAdapter : SocketAdapter {
-  override fun matchesSocket(sslSocket: SSLSocket): Boolean = SSLSockets.isSupportedSocket(sslSocket)
+   override fun matchesSocket(sslSocket: SSLSocket): Boolean = SSLSockets.isSupportedSocket(sslSocket)
 
-  override fun isSupported(): Boolean = Companion.isSupported()
+   override fun isSupported(): Boolean = Companion.isSupported()
 
-  @SuppressLint("NewApi")
-  override fun getSelectedProtocol(sslSocket: SSLSocket): String? =
+   @SuppressLint("NewApi")
+   override fun getSelectedProtocol(sslSocket: SSLSocket): String? =
       when (val protocol = sslSocket.applicationProtocol) {
-        null, "" -> null
-        else -> protocol
+         null, "" -> null
+         else -> protocol
       }
 
-  @SuppressLint("NewApi")
-  override fun configureTlsExtensions(
-    sslSocket: SSLSocket,
-    hostname: String?,
-    protocols: List<Protocol>
-  ) {
-    try {
-      SSLSockets.setUseSessionTickets(sslSocket, true)
+   @SuppressLint("NewApi")
+   override fun configureTlsExtensions(
+      sslSocket: SSLSocket,
+      hostname: String?,
+      protocols: List<Protocol>
+   ) {
+      try {
+         SSLSockets.setUseSessionTickets(sslSocket, true)
 
-      val sslParameters = sslSocket.sslParameters
+         val sslParameters = sslSocket.sslParameters
 
-      // Enable ALPN.
-      sslParameters.applicationProtocols = Platform.alpnProtocolNames(protocols).toTypedArray()
+         // Enable ALPN.
+         sslParameters.applicationProtocols = Platform.alpnProtocolNames(protocols).toTypedArray()
 
-      sslSocket.sslParameters = sslParameters
-    } catch (iae: IllegalArgumentException) {
-      // probably java.lang.IllegalArgumentException: Invalid input to toASCII from IDN.toASCII
-      throw IOException("Android internal error", iae)
-    }
-  }
+         sslSocket.sslParameters = sslParameters
+      } catch (iae: IllegalArgumentException) {
+         // probably java.lang.IllegalArgumentException: Invalid input to toASCII from IDN.toASCII
+         throw IOException("Android internal error", iae)
+      }
+   }
 
-  @SuppressSignatureCheck
-  companion object {
-    fun buildIfSupported(): SocketAdapter? =
-        if (isSupported()) Android10SocketAdapter() else null
+   @SuppressSignatureCheck
+   companion object {
+      fun buildIfSupported(): SocketAdapter? =
+         if (isSupported()) Android10SocketAdapter() else null
 
-    fun isSupported() = isAndroid && Build.VERSION.SDK_INT >= 29
-  }
+      fun isSupported() = isAndroid && Build.VERSION.SDK_INT >= 29
+   }
 }

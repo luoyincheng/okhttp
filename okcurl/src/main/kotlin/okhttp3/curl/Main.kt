@@ -51,255 +51,255 @@ import picocli.CommandLine.Parameters
 import java.lang.IllegalArgumentException
 
 @Command(name = NAME, description = ["A curl for the next-generation web."],
-    mixinStandardHelpOptions = true, versionProvider = Main.VersionProvider::class)
+   mixinStandardHelpOptions = true, versionProvider = Main.VersionProvider::class)
 class Main : Runnable {
-  @Option(names = ["-X", "--request"], description = ["Specify request command to use"])
-  var method: String? = null
+   @Option(names = ["-X", "--request"], description = ["Specify request command to use"])
+   var method: String? = null
 
-  @Option(names = ["-d", "--data"], description = ["HTTP POST data"])
-  var data: String? = null
+   @Option(names = ["-d", "--data"], description = ["HTTP POST data"])
+   var data: String? = null
 
-  @Option(names = ["-H", "--header"], description = ["Custom header to pass to server"])
-  var headers: MutableList<String>? = null
+   @Option(names = ["-H", "--header"], description = ["Custom header to pass to server"])
+   var headers: MutableList<String>? = null
 
-  @Option(names = ["-A", "--user-agent"], description = ["User-Agent to send to server"])
-  var userAgent = NAME + "/" + versionString()
+   @Option(names = ["-A", "--user-agent"], description = ["User-Agent to send to server"])
+   var userAgent = NAME + "/" + versionString()
 
-  @Option(names = ["--connect-timeout"],
+   @Option(names = ["--connect-timeout"],
       description = ["Maximum time allowed for connection (seconds)"])
-  var connectTimeout = DEFAULT_TIMEOUT
+   var connectTimeout = DEFAULT_TIMEOUT
 
-  @Option(names = ["--read-timeout"],
+   @Option(names = ["--read-timeout"],
       description = ["Maximum time allowed for reading data (seconds)"])
-  var readTimeout = DEFAULT_TIMEOUT
+   var readTimeout = DEFAULT_TIMEOUT
 
-  @Option(names = ["--call-timeout"],
+   @Option(names = ["--call-timeout"],
       description = ["Maximum time allowed for the entire call (seconds)"])
-  var callTimeout = DEFAULT_TIMEOUT
+   var callTimeout = DEFAULT_TIMEOUT
 
-  @Option(names = ["-L", "--location"], description = ["Follow redirects"])
-  var followRedirects: Boolean = false
+   @Option(names = ["-L", "--location"], description = ["Follow redirects"])
+   var followRedirects: Boolean = false
 
-  @Option(names = ["-k", "--insecure"], description = ["Allow connections to SSL sites without certs"])
-  var allowInsecure: Boolean = false
+   @Option(names = ["-k", "--insecure"], description = ["Allow connections to SSL sites without certs"])
+   var allowInsecure: Boolean = false
 
-  @Option(names = ["-i", "--include"], description = ["Include protocol headers in the output"])
-  var showHeaders: Boolean = false
+   @Option(names = ["-i", "--include"], description = ["Include protocol headers in the output"])
+   var showHeaders: Boolean = false
 
-  @Option(names = ["--frames"], description = ["Log HTTP/2 frames to STDERR"])
-  var showHttp2Frames: Boolean = false
+   @Option(names = ["--frames"], description = ["Log HTTP/2 frames to STDERR"])
+   var showHttp2Frames: Boolean = false
 
-  @Option(names = ["-e", "--referer"], description = ["Referer URL"])
-  var referer: String? = null
+   @Option(names = ["-e", "--referer"], description = ["Referer URL"])
+   var referer: String? = null
 
-  @Option(names = ["-v", "--verbose"], description = ["Makes $NAME verbose during the operation"])
-  var verbose: Boolean = false
+   @Option(names = ["-v", "--verbose"], description = ["Makes $NAME verbose during the operation"])
+   var verbose: Boolean = false
 
-  @Option(names = ["--ssldebug"], description = ["Output SSL Debug"])
-  var sslDebug: Boolean = false
+   @Option(names = ["--ssldebug"], description = ["Output SSL Debug"])
+   var sslDebug: Boolean = false
 
-  @Option(names = ["--completionScript"], hidden = true)
-  var completionScript: Boolean = false
+   @Option(names = ["--completionScript"], hidden = true)
+   var completionScript: Boolean = false
 
-  @Parameters(paramLabel = "url", description = ["Remote resource URL"])
-  var url: String? = null
+   @Parameters(paramLabel = "url", description = ["Remote resource URL"])
+   var url: String? = null
 
-  private lateinit var client: OkHttpClient
+   private lateinit var client: OkHttpClient
 
-  override fun run() {
-    if (completionScript) {
-      println(picocli.AutoComplete.bash("okcurl", CommandLine(Main())))
-      return
-    }
-
-    if (showHttp2Frames) {
-      enableHttp2FrameLogging()
-    }
-
-    if (sslDebug) {
-      enableSslDebugging()
-    }
-
-    client = createClient()
-    val request = createRequest()
-
-    try {
-      val response = client.newCall(request).execute()
-      if (showHeaders) {
-        println(StatusLine.get(response))
-        val headers = response.headers
-        for ((name, value) in headers) {
-          println("$name: $value")
-        }
-        println()
+   override fun run() {
+      if (completionScript) {
+         println(picocli.AutoComplete.bash("okcurl", CommandLine(Main())))
+         return
       }
 
-      // Stream the response to the System.out as it is returned from the server.
-      val out = System.out.sink()
-      val source = response.body!!.source()
-      while (!source.exhausted()) {
-        out.write(source.buffer, source.buffer.size)
-        out.flush()
+      if (showHttp2Frames) {
+         enableHttp2FrameLogging()
       }
 
-      response.body!!.close()
-    } catch (e: IOException) {
-      e.printStackTrace()
-    } finally {
-      close()
-    }
-  }
-
-  private fun createClient(): OkHttpClient {
-    val builder = OkHttpClient.Builder()
-    builder.followSslRedirects(followRedirects)
-    if (connectTimeout != DEFAULT_TIMEOUT) {
-      builder.connectTimeout(connectTimeout.toLong(), SECONDS)
-    }
-    if (readTimeout != DEFAULT_TIMEOUT) {
-      builder.readTimeout(readTimeout.toLong(), SECONDS)
-    }
-    if (callTimeout != DEFAULT_TIMEOUT) {
-      builder.callTimeout(callTimeout.toLong(), SECONDS)
-    }
-    if (allowInsecure) {
-      val trustManager = createInsecureTrustManager()
-      val sslSocketFactory = createInsecureSslSocketFactory(trustManager)
-      builder.sslSocketFactory(sslSocketFactory, trustManager)
-      builder.hostnameVerifier(createInsecureHostnameVerifier())
-    }
-    if (verbose) {
-      val logger = HttpLoggingInterceptor.Logger(::println)
-      builder.eventListenerFactory(LoggingEventListener.Factory(logger))
-    }
-    return builder.build()
-  }
-
-  public fun createRequest(): Request {
-    val request = Request.Builder()
-
-    val requestMethod = method ?: if (data != null) "POST" else "GET"
-
-    val url = url ?: throw IllegalArgumentException("No url provided")
-
-    request.url(url)
-
-    data?.let {
-      request.method(requestMethod, it.toRequestBody(mediaType()))
-    }
-
-    for (header in headers.orEmpty()) {
-      val parts = header.split(':', limit = 2)
-      request.header(parts[0], parts[1])
-    }
-    referer?.let {
-      request.header("Referer", it)
-    }
-    request.header("User-Agent", userAgent)
-
-    return request.build()
-  }
-
-  private fun mediaType(): MediaType? {
-    val mimeType = headers?.let {
-      for (header in it) {
-        val parts = header.split(':', limit = 2)
-        if ("Content-Type".equals(parts[0], ignoreCase = true)) {
-          it.remove(header)
-          return@let parts[1].trim()
-        }
-      }
-      return@let null
-    } ?: "application/x-www-form-urlencoded"
-
-    return mimeType.toMediaTypeOrNull()
-  }
-
-  private fun close() {
-    client.connectionPool.evictAll() // Close any persistent connections.
-    client.dispatcher.executorService.shutdownNow()
-  }
-
-  class VersionProvider : IVersionProvider {
-    override fun getVersion(): Array<String> {
-      return arrayOf(
-          "$NAME ${versionString()}",
-          "Protocols: ${Protocol.values().joinToString(", ")}",
-          "Platform: ${Platform.get()::class.java.simpleName}"
-      )
-    }
-  }
-
-  companion object {
-    internal const val NAME = "okcurl"
-    internal const val DEFAULT_TIMEOUT = -1
-    private var frameLogger: Logger? = null
-    private var sslLogger: Logger? = null
-
-    @JvmStatic
-    fun main(args: Array<String>) {
-      if (System.getProperty("javax.net.debug") == null) {
-        System.setProperty("javax.net.debug", "")
+      if (sslDebug) {
+         enableSslDebugging()
       }
 
-      exitProcess(CommandLine(Main()).execute(*args))
-    }
+      client = createClient()
+      val request = createRequest()
 
-    private fun versionString(): String? {
-      val prop = Properties()
-      Main::class.java.getResourceAsStream("/okcurl-version.properties").use {
-        prop.load(it)
-      }
-      return prop.getProperty("version", "dev")
-    }
-
-    private fun createInsecureTrustManager(): X509TrustManager = object : X509TrustManager {
-      override fun checkClientTrusted(chain: Array<X509Certificate>, authType: String) {}
-
-      override fun checkServerTrusted(chain: Array<X509Certificate>, authType: String) {}
-
-      override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
-    }
-
-    private fun createInsecureSslSocketFactory(trustManager: TrustManager): SSLSocketFactory =
-        Platform.get().newSSLContext().apply {
-          init(null, arrayOf(trustManager), null)
-        }.socketFactory
-
-    private fun createInsecureHostnameVerifier(): HostnameVerifier =
-        HostnameVerifier { _, _ -> true }
-
-    private fun enableHttp2FrameLogging() {
-      frameLogger = Logger.getLogger(Http2::class.java.name).apply {
-        level = Level.FINE
-        addHandler(ConsoleHandler().apply {
-          level = Level.FINE
-          formatter = object : SimpleFormatter() {
-            override fun format(record: LogRecord): String {
-              return format("%s%n", record.message)
+      try {
+         val response = client.newCall(request).execute()
+         if (showHeaders) {
+            println(StatusLine.get(response))
+            val headers = response.headers
+            for ((name, value) in headers) {
+               println("$name: $value")
             }
-          }
-        })
-      }
-    }
+            println()
+         }
 
-    private fun enableSslDebugging() {
-      sslLogger = Logger.getLogger("javax.net.ssl").apply {
-        level = Level.FINE
-        addHandler(ConsoleHandler().apply {
-          level = Level.FINE
-          formatter = object : SimpleFormatter() {
-            override fun format(record: LogRecord): String {
-              val parameters = record.parameters
-              if (parameters != null) {
-                return format("%s%n%s%n", record.message, record.parameters.first())
-              } else {
-                return format("%s%n", record.message)
-              }
-            }
-          }
-        })
+         // Stream the response to the System.out as it is returned from the server.
+         val out = System.out.sink()
+         val source = response.body!!.source()
+         while (!source.exhausted()) {
+            out.write(source.buffer, source.buffer.size)
+            out.flush()
+         }
+
+         response.body!!.close()
+      } catch (e: IOException) {
+         e.printStackTrace()
+      } finally {
+         close()
       }
-    }
-  }
+   }
+
+   private fun createClient(): OkHttpClient {
+      val builder = OkHttpClient.Builder()
+      builder.followSslRedirects(followRedirects)
+      if (connectTimeout != DEFAULT_TIMEOUT) {
+         builder.connectTimeout(connectTimeout.toLong(), SECONDS)
+      }
+      if (readTimeout != DEFAULT_TIMEOUT) {
+         builder.readTimeout(readTimeout.toLong(), SECONDS)
+      }
+      if (callTimeout != DEFAULT_TIMEOUT) {
+         builder.callTimeout(callTimeout.toLong(), SECONDS)
+      }
+      if (allowInsecure) {
+         val trustManager = createInsecureTrustManager()
+         val sslSocketFactory = createInsecureSslSocketFactory(trustManager)
+         builder.sslSocketFactory(sslSocketFactory, trustManager)
+         builder.hostnameVerifier(createInsecureHostnameVerifier())
+      }
+      if (verbose) {
+         val logger = HttpLoggingInterceptor.Logger(::println)
+         builder.eventListenerFactory(LoggingEventListener.Factory(logger))
+      }
+      return builder.build()
+   }
+
+   public fun createRequest(): Request {
+      val request = Request.Builder()
+
+      val requestMethod = method ?: if (data != null) "POST" else "GET"
+
+      val url = url ?: throw IllegalArgumentException("No url provided")
+
+      request.url(url)
+
+      data?.let {
+         request.method(requestMethod, it.toRequestBody(mediaType()))
+      }
+
+      for (header in headers.orEmpty()) {
+         val parts = header.split(':', limit = 2)
+         request.header(parts[0], parts[1])
+      }
+      referer?.let {
+         request.header("Referer", it)
+      }
+      request.header("User-Agent", userAgent)
+
+      return request.build()
+   }
+
+   private fun mediaType(): MediaType? {
+      val mimeType = headers?.let {
+         for (header in it) {
+            val parts = header.split(':', limit = 2)
+            if ("Content-Type".equals(parts[0], ignoreCase = true)) {
+               it.remove(header)
+               return@let parts[1].trim()
+            }
+         }
+         return@let null
+      } ?: "application/x-www-form-urlencoded"
+
+      return mimeType.toMediaTypeOrNull()
+   }
+
+   private fun close() {
+      client.connectionPool.evictAll() // Close any persistent connections.
+      client.dispatcher.executorService.shutdownNow()
+   }
+
+   class VersionProvider : IVersionProvider {
+      override fun getVersion(): Array<String> {
+         return arrayOf(
+            "$NAME ${versionString()}",
+            "Protocols: ${Protocol.values().joinToString(", ")}",
+            "Platform: ${Platform.get()::class.java.simpleName}"
+         )
+      }
+   }
+
+   companion object {
+      internal const val NAME = "okcurl"
+      internal const val DEFAULT_TIMEOUT = -1
+      private var frameLogger: Logger? = null
+      private var sslLogger: Logger? = null
+
+      @JvmStatic
+      fun main(args: Array<String>) {
+         if (System.getProperty("javax.net.debug") == null) {
+            System.setProperty("javax.net.debug", "")
+         }
+
+         exitProcess(CommandLine(Main()).execute(*args))
+      }
+
+      private fun versionString(): String? {
+         val prop = Properties()
+         Main::class.java.getResourceAsStream("/okcurl-version.properties").use {
+            prop.load(it)
+         }
+         return prop.getProperty("version", "dev")
+      }
+
+      private fun createInsecureTrustManager(): X509TrustManager = object : X509TrustManager {
+         override fun checkClientTrusted(chain: Array<X509Certificate>, authType: String) {}
+
+         override fun checkServerTrusted(chain: Array<X509Certificate>, authType: String) {}
+
+         override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
+      }
+
+      private fun createInsecureSslSocketFactory(trustManager: TrustManager): SSLSocketFactory =
+         Platform.get().newSSLContext().apply {
+            init(null, arrayOf(trustManager), null)
+         }.socketFactory
+
+      private fun createInsecureHostnameVerifier(): HostnameVerifier =
+         HostnameVerifier { _, _ -> true }
+
+      private fun enableHttp2FrameLogging() {
+         frameLogger = Logger.getLogger(Http2::class.java.name).apply {
+            level = Level.FINE
+            addHandler(ConsoleHandler().apply {
+               level = Level.FINE
+               formatter = object : SimpleFormatter() {
+                  override fun format(record: LogRecord): String {
+                     return format("%s%n", record.message)
+                  }
+               }
+            })
+         }
+      }
+
+      private fun enableSslDebugging() {
+         sslLogger = Logger.getLogger("javax.net.ssl").apply {
+            level = Level.FINE
+            addHandler(ConsoleHandler().apply {
+               level = Level.FINE
+               formatter = object : SimpleFormatter() {
+                  override fun format(record: LogRecord): String {
+                     val parameters = record.parameters
+                     if (parameters != null) {
+                        return format("%s%n%s%n", record.message, record.parameters.first())
+                     } else {
+                        return format("%s%n", record.message)
+                     }
+                  }
+               }
+            })
+         }
+      }
+   }
 }

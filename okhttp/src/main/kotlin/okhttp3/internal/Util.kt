@@ -59,21 +59,23 @@ import okio.Source
 
 @JvmField
 val EMPTY_BYTE_ARRAY = ByteArray(0)
+
 @JvmField
 val EMPTY_HEADERS = headersOf()
 
 @JvmField
 val EMPTY_RESPONSE = EMPTY_BYTE_ARRAY.toResponseBody()
+
 @JvmField
 val EMPTY_REQUEST = EMPTY_BYTE_ARRAY.toRequestBody()
 
 /** Byte order marks. */
 private val UNICODE_BOMS = Options.of(
-    "efbbbf".decodeHex(), // UTF-8
-    "feff".decodeHex(), // UTF-16BE
-    "fffe".decodeHex(), // UTF-16LE
-    "0000ffff".decodeHex(), // UTF-32BE
-    "ffff0000".decodeHex() // UTF-32LE
+   "efbbbf".decodeHex(), // UTF-8
+   "feff".decodeHex(), // UTF-16BE
+   "fffe".decodeHex(), // UTF-16LE
+   "0000ffff".decodeHex(), // UTF-32BE
+   "ffff0000".decodeHex() // UTF-32LE
 )
 
 /** GMT and UTC are equivalent for our purposes. */
@@ -91,21 +93,21 @@ val UTC = TimeZone.getTimeZone("GMT")!!
  * verification).
  */
 private val VERIFY_AS_IP_ADDRESS =
-    "([0-9a-fA-F]*:[0-9a-fA-F:.]*)|([\\d.]+)".toRegex()
+   "([0-9a-fA-F]*:[0-9a-fA-F:.]*)|([\\d.]+)".toRegex()
 
 fun checkOffsetAndCount(arrayLength: Long, offset: Long, count: Long) {
-  if (offset or count < 0L || offset > arrayLength || arrayLength - offset < count) {
-    throw ArrayIndexOutOfBoundsException()
-  }
+   if (offset or count < 0L || offset > arrayLength || arrayLength - offset < count) {
+      throw ArrayIndexOutOfBoundsException()
+   }
 }
 
 fun threadFactory(
-  name: String,
-  daemon: Boolean
+   name: String,
+   daemon: Boolean
 ): ThreadFactory = ThreadFactory { runnable ->
-  Thread(runnable, name).apply {
-    isDaemon = daemon
-  }
+   Thread(runnable, name).apply {
+      isDaemon = daemon
+   }
 }
 
 /**
@@ -113,19 +115,19 @@ fun threadFactory(
  * elements are in the same order as in this.
  */
 fun Array<String>.intersect(
-  other: Array<String>,
-  comparator: Comparator<in String>
+   other: Array<String>,
+   comparator: Comparator<in String>
 ): Array<String> {
-  val result = mutableListOf<String>()
-  for (a in this) {
-    for (b in other) {
-      if (comparator.compare(a, b) == 0) {
-        result.add(a)
-        break
+   val result = mutableListOf<String>()
+   for (a in this) {
+      for (b in other) {
+         if (comparator.compare(a, b) == 0) {
+            result.add(a)
+            break
+         }
       }
-    }
-  }
-  return result.toTypedArray()
+   }
+   return result.toTypedArray()
 }
 
 /**
@@ -135,76 +137,76 @@ fun Array<String>.intersect(
  * memory cost of hashing.
  */
 fun Array<String>.hasIntersection(
-  other: Array<String>?,
-  comparator: Comparator<in String>
+   other: Array<String>?,
+   comparator: Comparator<in String>
 ): Boolean {
-  if (isEmpty() || other == null || other.isEmpty()) {
-    return false
-  }
-  for (a in this) {
-    for (b in other) {
-      if (comparator.compare(a, b) == 0) {
-        return true
+   if (isEmpty() || other == null || other.isEmpty()) {
+      return false
+   }
+   for (a in this) {
+      for (b in other) {
+         if (comparator.compare(a, b) == 0) {
+            return true
+         }
       }
-    }
-  }
-  return false
+   }
+   return false
 }
 
 fun HttpUrl.toHostHeader(includeDefaultPort: Boolean = false): String {
-  val host = if (":" in host) {
-    "[$host]"
-  } else {
-    host
-  }
-  return if (includeDefaultPort || port != HttpUrl.defaultPort(scheme)) {
-    "$host:$port"
-  } else {
-    host
-  }
+   val host = if (":" in host) {
+      "[$host]"
+   } else {
+      host
+   }
+   return if (includeDefaultPort || port != HttpUrl.defaultPort(scheme)) {
+      "$host:$port"
+   } else {
+      host
+   }
 }
 
 fun Array<String>.indexOf(value: String, comparator: Comparator<String>): Int =
-    indexOfFirst { comparator.compare(it, value) == 0 }
+   indexOfFirst { comparator.compare(it, value) == 0 }
 
 @Suppress("UNCHECKED_CAST")
 fun Array<String>.concat(value: String): Array<String> {
-  val result = copyOf(size + 1)
-  result[result.lastIndex] = value
-  return result as Array<String>
+   val result = copyOf(size + 1)
+   result[result.lastIndex] = value
+   return result as Array<String>
 }
 
 /**
  * Increments [startIndex] until this string is not ASCII whitespace. Stops at [endIndex].
  */
 fun String.indexOfFirstNonAsciiWhitespace(startIndex: Int = 0, endIndex: Int = length): Int {
-  for (i in startIndex until endIndex) {
-    when (this[i]) {
-      '\t', '\n', '\u000C', '\r', ' ' -> Unit
-      else -> return i
-    }
-  }
-  return endIndex
+   for (i in startIndex until endIndex) {
+      when (this[i]) {
+         '\t', '\n', '\u000C', '\r', ' ' -> Unit
+         else -> return i
+      }
+   }
+   return endIndex
 }
 
 /**
  * Decrements [endIndex] until `input[endIndex - 1]` is not ASCII whitespace. Stops at [startIndex].
  */
 fun String.indexOfLastNonAsciiWhitespace(startIndex: Int = 0, endIndex: Int = length): Int {
-  for (i in endIndex - 1 downTo startIndex) {
-    when (this[i]) {
-      '\t', '\n', '\u000C', '\r', ' ' -> Unit
-      else -> return i + 1
-    }
-  }
-  return startIndex
+   for (i in endIndex - 1 downTo startIndex) {
+      when (this[i]) {
+         '\t', '\n', '\u000C', '\r', ' ' -> Unit
+         else -> return i + 1
+      }
+   }
+   return startIndex
 }
 
 /** Equivalent to `string.substring(startIndex, endIndex).trim()`. */
 fun String.trimSubstring(startIndex: Int = 0, endIndex: Int = length): String {
-  val start = indexOfFirstNonAsciiWhitespace(startIndex, endIndex)
-  val end = indexOfLastNonAsciiWhitespace(start, endIndex)
-  return substring(start, end)
+   val start = indexOfFirstNonAsciiWhitespace(startIndex, endIndex)
+   val end = indexOfLastNonAsciiWhitespace(start, endIndex)
+   return substring(start, end)
 }
 
 /**
@@ -212,10 +214,10 @@ fun String.trimSubstring(startIndex: Int = 0, endIndex: Int = length): String {
  * [delimiters]. Returns endIndex if there is no such character.
  */
 fun String.delimiterOffset(delimiters: String, startIndex: Int = 0, endIndex: Int = length): Int {
-  for (i in startIndex until endIndex) {
-    if (this[i] in delimiters) return i
-  }
-  return endIndex
+   for (i in startIndex until endIndex) {
+      if (this[i] in delimiters) return i
+   }
+   return endIndex
 }
 
 /**
@@ -223,10 +225,10 @@ fun String.delimiterOffset(delimiters: String, startIndex: Int = 0, endIndex: In
  * if there is no such character.
  */
 fun String.delimiterOffset(delimiter: Char, startIndex: Int = 0, endIndex: Int = length): Int {
-  for (i in startIndex until endIndex) {
-    if (this[i] == delimiter) return i
-  }
-  return endIndex
+   for (i in startIndex until endIndex) {
+      if (this[i] == delimiter) return i
+   }
+   return endIndex
 }
 
 /**
@@ -234,70 +236,70 @@ fun String.delimiterOffset(delimiter: Char, startIndex: Int = 0, endIndex: Int =
  * `\u0000` or `\n`) or a non-ASCII character. Returns -1 if this string has no such characters.
  */
 fun String.indexOfControlOrNonAscii(): Int {
-  for (i in 0 until length) {
-    val c = this[i]
-    if (c <= '\u001f' || c >= '\u007f') {
-      return i
-    }
-  }
-  return -1
+   for (i in 0 until length) {
+      val c = this[i]
+      if (c <= '\u001f' || c >= '\u007f') {
+         return i
+      }
+   }
+   return -1
 }
 
 /** Returns true if this string is not a host name and might be an IP address. */
 fun String.canParseAsIpAddress(): Boolean {
-  return VERIFY_AS_IP_ADDRESS.matches(this)
+   return VERIFY_AS_IP_ADDRESS.matches(this)
 }
 
 /** Returns a [Locale.US] formatted [String]. */
 fun format(format: String, vararg args: Any): String {
-  return String.format(Locale.US, format, *args)
+   return String.format(Locale.US, format, *args)
 }
 
 @Throws(IOException::class)
 fun BufferedSource.readBomAsCharset(default: Charset): Charset {
-  return when (select(UNICODE_BOMS)) {
-    0 -> UTF_8
-    1 -> UTF_16BE
-    2 -> UTF_16LE
-    3 -> UTF_32BE
-    4 -> UTF_32LE
-    -1 -> default
-    else -> throw AssertionError()
-  }
+   return when (select(UNICODE_BOMS)) {
+      0 -> UTF_8
+      1 -> UTF_16BE
+      2 -> UTF_16LE
+      3 -> UTF_32BE
+      4 -> UTF_32LE
+      -1 -> default
+      else -> throw AssertionError()
+   }
 }
 
 fun checkDuration(name: String, duration: Long, unit: TimeUnit?): Int {
-  check(duration >= 0L) { "$name < 0" }
-  check(unit != null) { "unit == null" }
-  val millis = unit.toMillis(duration)
-  require(millis <= Integer.MAX_VALUE) { "$name too large." }
-  require(millis != 0L || duration <= 0L) { "$name too small." }
-  return millis.toInt()
+   check(duration >= 0L) { "$name < 0" }
+   check(unit != null) { "unit == null" }
+   val millis = unit.toMillis(duration)
+   require(millis <= Integer.MAX_VALUE) { "$name too large." }
+   require(millis != 0L || duration <= 0L) { "$name too small." }
+   return millis.toInt()
 }
 
 fun Char.parseHexDigit(): Int = when (this) {
-  in '0'..'9' -> this - '0'
-  in 'a'..'f' -> this - 'a' + 10
-  in 'A'..'F' -> this - 'A' + 10
-  else -> -1
+   in '0'..'9' -> this - '0'
+   in 'a'..'f' -> this - 'a' + 10
+   in 'A'..'F' -> this - 'A' + 10
+   else -> -1
 }
 
 fun List<Header>.toHeaders(): Headers {
-  val builder = Headers.Builder()
-  for ((name, value) in this) {
-    builder.addLenient(name.utf8(), value.utf8())
-  }
-  return builder.build()
+   val builder = Headers.Builder()
+   for ((name, value) in this) {
+      builder.addLenient(name.utf8(), value.utf8())
+   }
+   return builder.build()
 }
 
 fun Headers.toHeaderList(): List<Header> = (0 until size).map {
-  Header(name(it), value(it))
+   Header(name(it), value(it))
 }
 
 /** Returns true if an HTTP request for this URL and [other] can reuse a connection. */
 fun HttpUrl.canReuseConnectionFor(other: HttpUrl): Boolean = host == other.host &&
-    port == other.port &&
-    scheme == other.scheme
+   port == other.port &&
+   scheme == other.scheme
 
 fun EventListener.asFactory() = EventListener.Factory { this }
 
@@ -307,14 +309,14 @@ infix fun Int.and(mask: Long): Long = toLong() and mask
 
 @Throws(IOException::class)
 fun BufferedSink.writeMedium(medium: Int) {
-  writeByte(medium.ushr(16) and 0xff)
-  writeByte(medium.ushr(8) and 0xff)
-  writeByte(medium and 0xff)
+   writeByte(medium.ushr(16) and 0xff)
+   writeByte(medium.ushr(8) and 0xff)
+   writeByte(medium and 0xff)
 }
 
 @Throws(IOException::class)
 fun BufferedSource.readMedium(): Int {
-  return (readByte() and 0xff shl 16
+   return (readByte() and 0xff shl 16
       or (readByte() and 0xff shl 8)
       or (readByte() and 0xff))
 }
@@ -325,28 +327,28 @@ fun BufferedSource.readMedium(): Int {
  */
 @Throws(IOException::class)
 fun Source.skipAll(duration: Int, timeUnit: TimeUnit): Boolean {
-  val nowNs = System.nanoTime()
-  val originalDurationNs = if (timeout().hasDeadline()) {
-    timeout().deadlineNanoTime() - nowNs
-  } else {
-    Long.MAX_VALUE
-  }
-  timeout().deadlineNanoTime(nowNs + minOf(originalDurationNs, timeUnit.toNanos(duration.toLong())))
-  return try {
-    val skipBuffer = Buffer()
-    while (read(skipBuffer, 8192) != -1L) {
-      skipBuffer.clear()
-    }
-    true // Success! The source has been exhausted.
-  } catch (_: InterruptedIOException) {
-    false // We ran out of time before exhausting the source.
-  } finally {
-    if (originalDurationNs == Long.MAX_VALUE) {
-      timeout().clearDeadline()
-    } else {
-      timeout().deadlineNanoTime(nowNs + originalDurationNs)
-    }
-  }
+   val nowNs = System.nanoTime()
+   val originalDurationNs = if (timeout().hasDeadline()) {
+      timeout().deadlineNanoTime() - nowNs
+   } else {
+      Long.MAX_VALUE
+   }
+   timeout().deadlineNanoTime(nowNs + minOf(originalDurationNs, timeUnit.toNanos(duration.toLong())))
+   return try {
+      val skipBuffer = Buffer()
+      while (read(skipBuffer, 8192) != -1L) {
+         skipBuffer.clear()
+      }
+      true // Success! The source has been exhausted.
+   } catch (_: InterruptedIOException) {
+      false // We ran out of time before exhausting the source.
+   } finally {
+      if (originalDurationNs == Long.MAX_VALUE) {
+         timeout().clearDeadline()
+      } else {
+         timeout().deadlineNanoTime(nowNs + originalDurationNs)
+      }
+   }
 }
 
 /**
@@ -355,14 +357,14 @@ fun Source.skipAll(duration: Int, timeUnit: TimeUnit): Boolean {
  * reuse.
  */
 fun Source.discard(timeout: Int, timeUnit: TimeUnit): Boolean = try {
-  this.skipAll(timeout, timeUnit)
+   this.skipAll(timeout, timeUnit)
 } catch (_: IOException) {
-  false
+   false
 }
 
 fun Socket.peerName(): String {
-  val address = remoteSocketAddress
-  return if (address is InetSocketAddress) address.hostName else address.toString()
+   val address = remoteSocketAddress
+   return if (address is InetSocketAddress) address.hostName else address.toString()
 }
 
 /**
@@ -375,47 +377,47 @@ fun Socket.peerName(): String {
  * @param source the source used to read bytes from the socket.
  */
 fun Socket.isHealthy(source: BufferedSource): Boolean {
-  return try {
-    val readTimeout = soTimeout
-    try {
-      soTimeout = 1
-      !source.exhausted()
-    } finally {
-      soTimeout = readTimeout
-    }
-  } catch (_: SocketTimeoutException) {
-    true // Read timed out; socket is good.
-  } catch (_: IOException) {
-    false // Couldn't read; socket is closed.
-  }
+   return try {
+      val readTimeout = soTimeout
+      try {
+         soTimeout = 1
+         !source.exhausted()
+      } finally {
+         soTimeout = readTimeout
+      }
+   } catch (_: SocketTimeoutException) {
+      true // Read timed out; socket is good.
+   } catch (_: IOException) {
+      false // Couldn't read; socket is closed.
+   }
 }
 
 /** Run [block] until it either throws an [IOException] or completes. */
 inline fun ignoreIoExceptions(block: () -> Unit) {
-  try {
-    block()
-  } catch (_: IOException) {
-  }
+   try {
+      block()
+   } catch (_: IOException) {
+   }
 }
 
 inline fun threadName(name: String, block: () -> Unit) {
-  val currentThread = Thread.currentThread()
-  val oldName = currentThread.name
-  currentThread.name = name
-  try {
-    block()
-  } finally {
-    currentThread.name = oldName
-  }
+   val currentThread = Thread.currentThread()
+   val oldName = currentThread.name
+   currentThread.name = name
+   try {
+      block()
+   } finally {
+      currentThread.name = oldName
+   }
 }
 
 fun Buffer.skipAll(b: Byte): Int {
-  var count = 0
-  while (!exhausted() && this[0] == b) {
-    count++
-    readByte()
-  }
-  return count
+   var count = 0
+   while (!exhausted() && this[0] == b) {
+      count++
+      readByte()
+   }
+   return count
 }
 
 /**
@@ -423,26 +425,26 @@ fun Buffer.skipAll(b: Byte): Int {
  * contains newline characters.
  */
 fun String.indexOfNonWhitespace(startIndex: Int = 0): Int {
-  for (i in startIndex until length) {
-    val c = this[i]
-    if (c != ' ' && c != '\t') {
-      return i
-    }
-  }
-  return length
+   for (i in startIndex until length) {
+      val c = this[i]
+      if (c != ' ' && c != '\t') {
+         return i
+      }
+   }
+   return length
 }
 
 /** Returns the Content-Length as reported by the response headers. */
 fun Response.headersContentLength(): Long {
-  return headers["Content-Length"]?.toLongOrDefault(-1L) ?: -1L
+   return headers["Content-Length"]?.toLongOrDefault(-1L) ?: -1L
 }
 
 fun String.toLongOrDefault(defaultValue: Long): Long {
-  return try {
-    toLong()
-  } catch (_: NumberFormatException) {
-    defaultValue
-  }
+   return try {
+      toLong()
+   } catch (_: NumberFormatException) {
+      defaultValue
+   }
 }
 
 /**
@@ -450,73 +452,73 @@ fun String.toLongOrDefault(defaultValue: Long): Long {
  * large, or [defaultValue] if it cannot be parsed.
  */
 fun String?.toNonNegativeInt(defaultValue: Int): Int {
-  try {
-    val value = this?.toLong() ?: return defaultValue
-    return when {
-      value > Int.MAX_VALUE -> Int.MAX_VALUE
-      value < 0 -> 0
-      else -> value.toInt()
-    }
-  } catch (_: NumberFormatException) {
-    return defaultValue
-  }
+   try {
+      val value = this?.toLong() ?: return defaultValue
+      return when {
+         value > Int.MAX_VALUE -> Int.MAX_VALUE
+         value < 0 -> 0
+         else -> value.toInt()
+      }
+   } catch (_: NumberFormatException) {
+      return defaultValue
+   }
 }
 
 /** Returns an immutable copy of this. */
 fun <T> List<T>.toImmutableList(): List<T> {
-  return Collections.unmodifiableList(toMutableList())
+   return Collections.unmodifiableList(toMutableList())
 }
 
 /** Returns an immutable list containing [elements]. */
 @SafeVarargs
 fun <T> immutableListOf(vararg elements: T): List<T> {
-  return Collections.unmodifiableList(listOf(*elements.clone()))
+   return Collections.unmodifiableList(listOf(*elements.clone()))
 }
 
 /** Returns an immutable copy of this. */
 fun <K, V> Map<K, V>.toImmutableMap(): Map<K, V> {
-  return if (isEmpty()) {
-    emptyMap()
-  } else {
-    Collections.unmodifiableMap(LinkedHashMap(this))
-  }
+   return if (isEmpty()) {
+      emptyMap()
+   } else {
+      Collections.unmodifiableMap(LinkedHashMap(this))
+   }
 }
 
 /** Closes this, ignoring any checked exceptions. */
 fun Closeable.closeQuietly() {
-  try {
-    close()
-  } catch (rethrown: RuntimeException) {
-    throw rethrown
-  } catch (_: Exception) {
-  }
+   try {
+      close()
+   } catch (rethrown: RuntimeException) {
+      throw rethrown
+   } catch (_: Exception) {
+   }
 }
 
 /** Closes this, ignoring any checked exceptions. */
 fun Socket.closeQuietly() {
-  try {
-    close()
-  } catch (e: AssertionError) {
-    throw e
-  } catch (rethrown: RuntimeException) {
-    if (rethrown.message == "bio == null") {
-      // Conscrypt in Android 10 and 11 may throw closing an SSLSocket. This is safe to ignore.
-      // https://issuetracker.google.com/issues/177450597
-      return
-    }
-    throw rethrown
-  } catch (_: Exception) {
-  }
+   try {
+      close()
+   } catch (e: AssertionError) {
+      throw e
+   } catch (rethrown: RuntimeException) {
+      if (rethrown.message == "bio == null") {
+         // Conscrypt in Android 10 and 11 may throw closing an SSLSocket. This is safe to ignore.
+         // https://issuetracker.google.com/issues/177450597
+         return
+      }
+      throw rethrown
+   } catch (_: Exception) {
+   }
 }
 
 /** Closes this, ignoring any checked exceptions.  */
 fun ServerSocket.closeQuietly() {
-  try {
-    close()
-  } catch (rethrown: RuntimeException) {
-    throw rethrown
-  } catch (_: Exception) {
-  }
+   try {
+      close()
+   } catch (rethrown: RuntimeException) {
+      throw rethrown
+   } catch (_: Exception) {
+   }
 }
 
 /**
@@ -531,15 +533,15 @@ fun ServerSocket.closeQuietly() {
  * @param file a file in the directory to check. This file shouldn't already exist!
  */
 fun FileSystem.isCivilized(file: File): Boolean {
-  sink(file).use {
-    try {
-      delete(file)
-      return true
-    } catch (_: IOException) {
-    }
-  }
-  delete(file)
-  return false
+   sink(file).use {
+      try {
+         delete(file)
+         return true
+      } catch (_: IOException) {
+      }
+   }
+   delete(file)
+   return false
 }
 
 fun Long.toHexString(): String = java.lang.Long.toHexString(this)
@@ -556,31 +558,31 @@ inline fun Any.notify() = (this as Object).notify()
 inline fun Any.notifyAll() = (this as Object).notifyAll()
 
 fun <T> readFieldOrNull(instance: Any, fieldType: Class<T>, fieldName: String): T? {
-  var c: Class<*> = instance.javaClass
-  while (c != Any::class.java) {
-    try {
-      val field = c.getDeclaredField(fieldName)
-      field.isAccessible = true
-      val value = field.get(instance)
-      return if (!fieldType.isInstance(value)) null else fieldType.cast(value)
-    } catch (_: NoSuchFieldException) {
-    }
+   var c: Class<*> = instance.javaClass
+   while (c != Any::class.java) {
+      try {
+         val field = c.getDeclaredField(fieldName)
+         field.isAccessible = true
+         val value = field.get(instance)
+         return if (!fieldType.isInstance(value)) null else fieldType.cast(value)
+      } catch (_: NoSuchFieldException) {
+      }
 
-    c = c.superclass
-  }
+      c = c.superclass
+   }
 
-  // Didn't find the field we wanted. As a last gasp attempt,
-  // try to find the value on a delegate.
-  if (fieldName != "delegate") {
-    val delegate = readFieldOrNull(instance, Any::class.java, "delegate")
-    if (delegate != null) return readFieldOrNull(delegate, fieldType, fieldName)
-  }
+   // Didn't find the field we wanted. As a last gasp attempt,
+   // try to find the value on a delegate.
+   if (fieldName != "delegate") {
+      val delegate = readFieldOrNull(instance, Any::class.java, "delegate")
+      if (delegate != null) return readFieldOrNull(delegate, fieldType, fieldName)
+   }
 
-  return null
+   return null
 }
 
 internal fun <E> MutableList<E>.addIfAbsent(element: E) {
-  if (!contains(element)) add(element)
+   if (!contains(element)) add(element)
 }
 
 @JvmField
@@ -594,35 +596,35 @@ val assertionsEnabled = OkHttpClient::class.java.desiredAssertionStatus()
  */
 @JvmField
 internal val okHttpName =
-    OkHttpClient::class.java.name.removePrefix("okhttp3.").removeSuffix("Client")
+   OkHttpClient::class.java.name.removePrefix("okhttp3.").removeSuffix("Client")
 
 @Suppress("NOTHING_TO_INLINE")
 inline fun Any.assertThreadHoldsLock() {
-  if (assertionsEnabled && !Thread.holdsLock(this)) {
-    throw AssertionError("Thread ${Thread.currentThread().name} MUST hold lock on $this")
-  }
+   if (assertionsEnabled && !Thread.holdsLock(this)) {
+      throw AssertionError("Thread ${Thread.currentThread().name} MUST hold lock on $this")
+   }
 }
 
 @Suppress("NOTHING_TO_INLINE")
 inline fun Any.assertThreadDoesntHoldLock() {
-  if (assertionsEnabled && Thread.holdsLock(this)) {
-    throw AssertionError("Thread ${Thread.currentThread().name} MUST NOT hold lock on $this")
-  }
+   if (assertionsEnabled && Thread.holdsLock(this)) {
+      throw AssertionError("Thread ${Thread.currentThread().name} MUST NOT hold lock on $this")
+   }
 }
 
 fun Exception.withSuppressed(suppressed: List<Exception>): Throwable = apply {
-  for (e in suppressed) addSuppressed(e)
+   for (e in suppressed) addSuppressed(e)
 }
 
 inline fun <T> Iterable<T>.filterList(predicate: T.() -> Boolean): List<T> {
-  var result: List<T> = emptyList()
-  for (i in this) {
-    if (predicate(i)) {
-      if (result.isEmpty()) result = mutableListOf()
-      (result as MutableList<T>).add(i)
-    }
-  }
-  return result
+   var result: List<T> = emptyList()
+   for (i in this) {
+      if (predicate(i)) {
+         if (result.isEmpty()) result = mutableListOf()
+         (result as MutableList<T>).add(i)
+      }
+   }
+   return result
 }
 
 const val userAgent = "okhttp/${OkHttp.VERSION}"

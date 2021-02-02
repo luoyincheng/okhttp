@@ -15,6 +15,12 @@
  */
 package okhttp3;
 
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.extension.RegisterExtension;
+
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.net.HttpURLConnection;
@@ -22,15 +28,11 @@ import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+
 import mockwebserver3.MockResponse;
 import mockwebserver3.MockWebServer;
 import okhttp3.testing.Flaky;
 import okio.BufferedSink;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
-import org.junit.jupiter.api.extension.RegisterExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -38,299 +40,319 @@ import static org.junit.jupiter.api.Assertions.fail;
 @Timeout(30)
 @Tag("Slow")
 public final class WholeOperationTimeoutTest {
-  /** A large response body. Smaller bodies might successfully read after the socket is closed! */
-  private static final String BIG_ENOUGH_BODY = TestUtil.repeat('a', 64 * 1024);
+	/**
+	 * A large response body. Smaller bodies might successfully read after the socket is closed!
+	 */
+	private static final String BIG_ENOUGH_BODY = TestUtil.repeat('a', 64 * 1024);
 
-  @RegisterExtension public final OkHttpClientTestRule clientTestRule = new OkHttpClientTestRule();
+	@RegisterExtension
+	public final OkHttpClientTestRule clientTestRule = new OkHttpClientTestRule();
+	private final OkHttpClient client = clientTestRule.newClient();
+	private MockWebServer server;
 
-  private MockWebServer server;
-  private final OkHttpClient client = clientTestRule.newClient();
+	@BeforeEach
+	public void setUp(MockWebServer server) throws Exception {
+		this.server = server;
+	}
 
-  @BeforeEach
-  public void setUp(MockWebServer server) throws Exception {
-    this.server = server;
-  }
+	@Test
+	public void defaultConfigIsNoTimeout() throws Exception {
+		Request request = new Request.Builder()
+			.url(server.url("/"))
+			.build();
+		Call call = client.newCall(request);
+		assertThat(call.timeout().timeoutNanos()).isEqualTo(0);
+	}
 
-  @Test public void defaultConfigIsNoTimeout() throws Exception {
-    Request request = new Request.Builder()
-        .url(server.url("/"))
-        .build();
-    Call call = client.newCall(request);
-    assertThat(call.timeout().timeoutNanos()).isEqualTo(0);
-  }
+	@Test
+	public void configureClientDefault() throws Exception {
+		Request request = new Request.Builder()
+			.url(server.url("/"))
+			.build();
 
-  @Test public void configureClientDefault() throws Exception {
-    Request request = new Request.Builder()
-        .url(server.url("/"))
-        .build();
+		OkHttpClient timeoutClient = client.newBuilder()
+			.callTimeout(Duration.ofMillis(456))
+			.build();
 
-    OkHttpClient timeoutClient = client.newBuilder()
-        .callTimeout(Duration.ofMillis(456))
-        .build();
+		Call call = timeoutClient.newCall(request);
+		assertThat(call.timeout().timeoutNanos()).isEqualTo(TimeUnit.MILLISECONDS.toNanos(456));
+	}
 
-    Call call = timeoutClient.newCall(request);
-    assertThat(call.timeout().timeoutNanos()).isEqualTo(TimeUnit.MILLISECONDS.toNanos(456));
-  }
+	@Test
+	public void timeoutWritingRequest() throws Exception {
+		server.enqueue(new MockResponse());
 
-  @Test public void timeoutWritingRequest() throws Exception {
-    server.enqueue(new MockResponse());
+		Request request = new Request.Builder()
+			.url(server.url("/"))
+			.post(sleepingRequestBody(500))
+			.build();
 
-    Request request = new Request.Builder()
-        .url(server.url("/"))
-        .post(sleepingRequestBody(500))
-        .build();
+		Call call = client.newCall(request);
+		call.timeout().timeout(250, TimeUnit.MILLISECONDS);
+		try {
+			call.execute();
+			fail();
+		} catch (IOException e) {
+			assertThat(e.getMessage()).isEqualTo("timeout");
+			assertThat(call.isCanceled()).isTrue();
+		}
+	}
 
-    Call call = client.newCall(request);
-    call.timeout().timeout(250, TimeUnit.MILLISECONDS);
-    try {
-      call.execute();
-      fail();
-    } catch (IOException e) {
-      assertThat(e.getMessage()).isEqualTo("timeout");
-      assertThat(call.isCanceled()).isTrue();
-    }
-  }
+	@Test
+	public void timeoutWritingRequestWithEnqueue() throws Exception {
+		server.enqueue(new MockResponse());
 
-  @Test public void timeoutWritingRequestWithEnqueue() throws Exception {
-    server.enqueue(new MockResponse());
+		Request request = new Request.Builder()
+			.url(server.url("/"))
+			.post(sleepingRequestBody(500))
+			.build();
 
-    Request request = new Request.Builder()
-        .url(server.url("/"))
-        .post(sleepingRequestBody(500))
-        .build();
+		final CountDownLatch latch = new CountDownLatch(1);
+		final AtomicReference<Throwable> exceptionRef = new AtomicReference<>();
 
-    final CountDownLatch latch = new CountDownLatch(1);
-    final AtomicReference<Throwable> exceptionRef = new AtomicReference<>();
+		Call call = client.newCall(request);
+		call.timeout().timeout(250, TimeUnit.MILLISECONDS);
+		call.enqueue(new Callback() {
+			@Override
+			public void onFailure(Call call, IOException e) {
+				exceptionRef.set(e);
+				latch.countDown();
+			}
 
-    Call call = client.newCall(request);
-    call.timeout().timeout(250, TimeUnit.MILLISECONDS);
-    call.enqueue(new Callback() {
-      @Override public void onFailure(Call call, IOException e) {
-        exceptionRef.set(e);
-        latch.countDown();
-      }
+			@Override
+			public void onResponse(Call call, Response response) throws IOException {
+				response.close();
+				latch.countDown();
+			}
+		});
 
-      @Override public void onResponse(Call call, Response response) throws IOException {
-        response.close();
-        latch.countDown();
-      }
-    });
+		latch.await();
+		assertThat(call.isCanceled()).isTrue();
+		assertThat(exceptionRef.get()).isNotNull();
+	}
 
-    latch.await();
-    assertThat(call.isCanceled()).isTrue();
-    assertThat(exceptionRef.get()).isNotNull();
-  }
+	@Test
+	public void timeoutProcessing() throws Exception {
+		server.enqueue(new MockResponse()
+			.setHeadersDelay(500, TimeUnit.MILLISECONDS));
 
-  @Test public void timeoutProcessing() throws Exception {
-    server.enqueue(new MockResponse()
-        .setHeadersDelay(500, TimeUnit.MILLISECONDS));
+		Request request = new Request.Builder()
+			.url(server.url("/"))
+			.build();
 
-    Request request = new Request.Builder()
-        .url(server.url("/"))
-        .build();
+		Call call = client.newCall(request);
+		call.timeout().timeout(250, TimeUnit.MILLISECONDS);
+		try {
+			call.execute();
+			fail();
+		} catch (IOException e) {
+			assertThat(e.getMessage()).isEqualTo("timeout");
+			assertThat(call.isCanceled()).isTrue();
+		}
+	}
 
-    Call call = client.newCall(request);
-    call.timeout().timeout(250, TimeUnit.MILLISECONDS);
-    try {
-      call.execute();
-      fail();
-    } catch (IOException e) {
-      assertThat(e.getMessage()).isEqualTo("timeout");
-      assertThat(call.isCanceled()).isTrue();
-    }
-  }
+	@Test
+	public void timeoutProcessingWithEnqueue() throws Exception {
+		server.enqueue(new MockResponse()
+			.setHeadersDelay(500, TimeUnit.MILLISECONDS));
 
-  @Test public void timeoutProcessingWithEnqueue() throws Exception {
-    server.enqueue(new MockResponse()
-        .setHeadersDelay(500, TimeUnit.MILLISECONDS));
+		Request request = new Request.Builder()
+			.url(server.url("/"))
+			.build();
 
-    Request request = new Request.Builder()
-        .url(server.url("/"))
-        .build();
+		final CountDownLatch latch = new CountDownLatch(1);
+		final AtomicReference<Throwable> exceptionRef = new AtomicReference<>();
 
-    final CountDownLatch latch = new CountDownLatch(1);
-    final AtomicReference<Throwable> exceptionRef = new AtomicReference<>();
+		Call call = client.newCall(request);
+		call.timeout().timeout(250, TimeUnit.MILLISECONDS);
+		call.enqueue(new Callback() {
+			@Override
+			public void onFailure(Call call, IOException e) {
+				exceptionRef.set(e);
+				latch.countDown();
+			}
 
-    Call call = client.newCall(request);
-    call.timeout().timeout(250, TimeUnit.MILLISECONDS);
-    call.enqueue(new Callback() {
-      @Override public void onFailure(Call call, IOException e) {
-        exceptionRef.set(e);
-        latch.countDown();
-      }
+			@Override
+			public void onResponse(Call call, Response response) throws IOException {
+				response.close();
+				latch.countDown();
+			}
+		});
 
-      @Override public void onResponse(Call call, Response response) throws IOException {
-        response.close();
-        latch.countDown();
-      }
-    });
+		latch.await();
+		assertThat(call.isCanceled()).isTrue();
+		assertThat(exceptionRef.get()).isNotNull();
+	}
 
-    latch.await();
-    assertThat(call.isCanceled()).isTrue();
-    assertThat(exceptionRef.get()).isNotNull();
-  }
+	@Test
+	public void timeoutReadingResponse() throws Exception {
+		server.enqueue(new MockResponse()
+			.setBody(BIG_ENOUGH_BODY));
 
-  @Test public void timeoutReadingResponse() throws Exception {
-    server.enqueue(new MockResponse()
-        .setBody(BIG_ENOUGH_BODY));
+		Request request = new Request.Builder()
+			.url(server.url("/"))
+			.build();
 
-    Request request = new Request.Builder()
-        .url(server.url("/"))
-        .build();
+		Call call = client.newCall(request);
+		call.timeout().timeout(250, TimeUnit.MILLISECONDS);
+		Response response = call.execute();
+		Thread.sleep(500);
+		try {
+			response.body().source().readUtf8();
+			fail();
+		} catch (IOException e) {
+			assertThat(e.getMessage()).isEqualTo("timeout");
+			assertThat(call.isCanceled()).isTrue();
+		}
+	}
 
-    Call call = client.newCall(request);
-    call.timeout().timeout(250, TimeUnit.MILLISECONDS);
-    Response response = call.execute();
-    Thread.sleep(500);
-    try {
-      response.body().source().readUtf8();
-      fail();
-    } catch (IOException e) {
-      assertThat(e.getMessage()).isEqualTo("timeout");
-      assertThat(call.isCanceled()).isTrue();
-    }
-  }
+	@Test
+	public void timeoutReadingResponseWithEnqueue() throws Exception {
+		server.enqueue(new MockResponse()
+			.setBody(BIG_ENOUGH_BODY));
 
-  @Test public void timeoutReadingResponseWithEnqueue() throws Exception {
-    server.enqueue(new MockResponse()
-        .setBody(BIG_ENOUGH_BODY));
+		Request request = new Request.Builder()
+			.url(server.url("/"))
+			.build();
 
-    Request request = new Request.Builder()
-        .url(server.url("/"))
-        .build();
+		final CountDownLatch latch = new CountDownLatch(1);
+		final AtomicReference<Throwable> exceptionRef = new AtomicReference<>();
 
-    final CountDownLatch latch = new CountDownLatch(1);
-    final AtomicReference<Throwable> exceptionRef = new AtomicReference<>();
+		Call call = client.newCall(request);
+		call.timeout().timeout(250, TimeUnit.MILLISECONDS);
+		call.enqueue(new Callback() {
+			@Override
+			public void onFailure(Call call, IOException e) {
+				latch.countDown();
+			}
 
-    Call call = client.newCall(request);
-    call.timeout().timeout(250, TimeUnit.MILLISECONDS);
-    call.enqueue(new Callback() {
-      @Override public void onFailure(Call call, IOException e) {
-        latch.countDown();
-      }
+			@Override
+			public void onResponse(Call call, Response response) throws IOException {
+				try {
+					Thread.sleep(500);
+				} catch (InterruptedException e) {
+					throw new AssertionError();
+				}
+				try {
+					response.body().source().readUtf8();
+					fail();
+				} catch (IOException e) {
+					exceptionRef.set(e);
+				} finally {
+					latch.countDown();
+				}
+			}
+		});
 
-      @Override public void onResponse(Call call, Response response) throws IOException {
-        try {
-          Thread.sleep(500);
-        } catch (InterruptedException e) {
-          throw new AssertionError();
-        }
-        try {
-          response.body().source().readUtf8();
-          fail();
-        } catch (IOException e) {
-          exceptionRef.set(e);
-        } finally {
-          latch.countDown();
-        }
-      }
-    });
+		latch.await();
+		assertThat(call.isCanceled()).isTrue();
+		assertThat(exceptionRef.get()).isNotNull();
+	}
 
-    latch.await();
-    assertThat(call.isCanceled()).isTrue();
-    assertThat(exceptionRef.get()).isNotNull();
-  }
+	@Test
+	public void singleTimeoutForAllFollowUpRequests() throws Exception {
+		server.enqueue(new MockResponse()
+			.setResponseCode(HttpURLConnection.HTTP_MOVED_TEMP)
+			.setHeader("Location", "/b")
+			.setHeadersDelay(100, TimeUnit.MILLISECONDS));
+		server.enqueue(new MockResponse()
+			.setResponseCode(HttpURLConnection.HTTP_MOVED_TEMP)
+			.setHeader("Location", "/c")
+			.setHeadersDelay(100, TimeUnit.MILLISECONDS));
+		server.enqueue(new MockResponse()
+			.setResponseCode(HttpURLConnection.HTTP_MOVED_TEMP)
+			.setHeader("Location", "/d")
+			.setHeadersDelay(100, TimeUnit.MILLISECONDS));
+		server.enqueue(new MockResponse()
+			.setResponseCode(HttpURLConnection.HTTP_MOVED_TEMP)
+			.setHeader("Location", "/e")
+			.setHeadersDelay(100, TimeUnit.MILLISECONDS));
+		server.enqueue(new MockResponse()
+			.setResponseCode(HttpURLConnection.HTTP_MOVED_TEMP)
+			.setHeader("Location", "/f")
+			.setHeadersDelay(100, TimeUnit.MILLISECONDS));
+		server.enqueue(new MockResponse());
 
-  @Test public void singleTimeoutForAllFollowUpRequests() throws Exception {
-    server.enqueue(new MockResponse()
-        .setResponseCode(HttpURLConnection.HTTP_MOVED_TEMP)
-        .setHeader("Location", "/b")
-        .setHeadersDelay(100, TimeUnit.MILLISECONDS));
-    server.enqueue(new MockResponse()
-        .setResponseCode(HttpURLConnection.HTTP_MOVED_TEMP)
-        .setHeader("Location", "/c")
-        .setHeadersDelay(100, TimeUnit.MILLISECONDS));
-    server.enqueue(new MockResponse()
-        .setResponseCode(HttpURLConnection.HTTP_MOVED_TEMP)
-        .setHeader("Location", "/d")
-        .setHeadersDelay(100, TimeUnit.MILLISECONDS));
-    server.enqueue(new MockResponse()
-        .setResponseCode(HttpURLConnection.HTTP_MOVED_TEMP)
-        .setHeader("Location", "/e")
-        .setHeadersDelay(100, TimeUnit.MILLISECONDS));
-    server.enqueue(new MockResponse()
-        .setResponseCode(HttpURLConnection.HTTP_MOVED_TEMP)
-        .setHeader("Location", "/f")
-        .setHeadersDelay(100, TimeUnit.MILLISECONDS));
-    server.enqueue(new MockResponse());
+		Request request = new Request.Builder()
+			.url(server.url("/a"))
+			.build();
 
-    Request request = new Request.Builder()
-        .url(server.url("/a"))
-        .build();
+		Call call = client.newCall(request);
+		call.timeout().timeout(250, TimeUnit.MILLISECONDS);
+		try {
+			call.execute();
+			fail();
+		} catch (IOException e) {
+			assertThat(e.getMessage()).isEqualTo("timeout");
+			assertThat(call.isCanceled()).isTrue();
+		}
+	}
 
-    Call call = client.newCall(request);
-    call.timeout().timeout(250, TimeUnit.MILLISECONDS);
-    try {
-      call.execute();
-      fail();
-    } catch (IOException e) {
-      assertThat(e.getMessage()).isEqualTo("timeout");
-      assertThat(call.isCanceled()).isTrue();
-    }
-  }
+	@Test
+	public void timeoutFollowingRedirectOnNewConnection() throws Exception {
+		MockWebServer otherServer = new MockWebServer();
 
-  @Test
-  public void timeoutFollowingRedirectOnNewConnection() throws Exception {
-    MockWebServer otherServer = new MockWebServer();
+		server.enqueue(
+			new MockResponse()
+				.setResponseCode(HttpURLConnection.HTTP_MOVED_TEMP)
+				.setHeader("Location", otherServer.url("/")));
 
-    server.enqueue(
-        new MockResponse()
-            .setResponseCode(HttpURLConnection.HTTP_MOVED_TEMP)
-            .setHeader("Location", otherServer.url("/")));
+		otherServer.enqueue(new MockResponse().setHeadersDelay(500, TimeUnit.MILLISECONDS));
 
-    otherServer.enqueue(new MockResponse().setHeadersDelay(500, TimeUnit.MILLISECONDS));
+		Request request = new Request.Builder().url(server.url("/")).build();
 
-    Request request = new Request.Builder().url(server.url("/")).build();
+		Call call = client.newCall(request);
+		call.timeout().timeout(250, TimeUnit.MILLISECONDS);
+		try {
+			call.execute();
+			fail();
+		} catch (IOException e) {
+			assertThat(e.getMessage()).isEqualTo("timeout");
+			assertThat(call.isCanceled()).isTrue();
+		}
+	}
 
-    Call call = client.newCall(request);
-    call.timeout().timeout(250, TimeUnit.MILLISECONDS);
-    try {
-      call.execute();
-      fail();
-    } catch (IOException e) {
-      assertThat(e.getMessage()).isEqualTo("timeout");
-      assertThat(call.isCanceled()).isTrue();
-    }
-  }
+	@Flaky
+	@Test
+	public void noTimeout() throws Exception {
+		// Flaky https://github.com/square/okhttp/issues/5304
 
-  @Flaky
-  @Test public void noTimeout() throws Exception {
-    // Flaky https://github.com/square/okhttp/issues/5304
+		server.enqueue(new MockResponse()
+			.setHeadersDelay(250, TimeUnit.MILLISECONDS)
+			.setBody(BIG_ENOUGH_BODY));
 
-    server.enqueue(new MockResponse()
-        .setHeadersDelay(250, TimeUnit.MILLISECONDS)
-        .setBody(BIG_ENOUGH_BODY));
+		Request request = new Request.Builder()
+			.url(server.url("/"))
+			.post(sleepingRequestBody(250))
+			.build();
 
-    Request request = new Request.Builder()
-        .url(server.url("/"))
-        .post(sleepingRequestBody(250))
-        .build();
+		Call call = client.newCall(request);
+		call.timeout().timeout(2000, TimeUnit.MILLISECONDS);
+		Response response = call.execute();
+		Thread.sleep(250);
+		response.body().source().readUtf8();
+		response.close();
+		assertThat(call.isCanceled()).isFalse();
+	}
 
-    Call call = client.newCall(request);
-    call.timeout().timeout(2000, TimeUnit.MILLISECONDS);
-    Response response = call.execute();
-    Thread.sleep(250);
-    response.body().source().readUtf8();
-    response.close();
-    assertThat(call.isCanceled()).isFalse();
-  }
+	private RequestBody sleepingRequestBody(final int sleepMillis) {
+		return new RequestBody() {
+			@Override
+			public MediaType contentType() {
+				return MediaType.parse("text/plain");
+			}
 
-  private RequestBody sleepingRequestBody(final int sleepMillis) {
-    return new RequestBody() {
-      @Override public MediaType contentType() {
-        return MediaType.parse("text/plain");
-      }
-
-      @Override public void writeTo(BufferedSink sink) throws IOException {
-        try {
-          sink.writeUtf8("abc");
-          sink.flush();
-          Thread.sleep(sleepMillis);
-          sink.writeUtf8("def");
-        } catch (InterruptedException e) {
-          throw new InterruptedIOException();
-        }
-      }
-    };
-  }
+			@Override
+			public void writeTo(BufferedSink sink) throws IOException {
+				try {
+					sink.writeUtf8("abc");
+					sink.flush();
+					Thread.sleep(sleepMillis);
+					sink.writeUtf8("def");
+				} catch (InterruptedException e) {
+					throw new InterruptedIOException();
+				}
+			}
+		};
+	}
 }
